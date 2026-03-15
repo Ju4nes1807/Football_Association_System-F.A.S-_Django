@@ -30,6 +30,6 @@ Desarrollar Football  Association  System, un software que permita a líderes de
 
 * **Lenguaje de Programacion:** Python (Version 3.14.3)
 * **Frameworks:** Django (Version 5.0.6)
-*  **Diseño**: HTML%, CSS3
+*  **Diseño**: HTML5, CSS3
 *  **Frameworks de Diseño:** Bootstrap5, Tailwind CSS 4.2.1
 * **Base de Datos:** MySQL 8.0
