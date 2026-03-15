@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Sesion principal</title>
+
+    <style>
+        .footer-content {
+            flex-direction: column;
+        }
+
+        @media (min-width: 576px) {
+            .footer-content {
+                flex-direction: row;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                border-right: none !important;
+                border-bottom: 1px solid #dee2e6;
+                padding-bottom: 1rem;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <div class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <a href="landinpage.html" class="d-flex align-items-center">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
+            <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navNavbarDropdown">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navNavbarDropdown">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link text-light shadow btn btn-link">
+                        Cerrar sesión
+                    </button>
+                </form>                    
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container-fluid flex-grow-1">
+        <div class="row">
+            <div class="col-12 col-md-3 col-lg-2 sidebar">
+                <h5 class="mb-3 text-primary">Inicio</h5>
+
+                <div class="list-group">
+                    <a th:href="@{/admin/dashboard}" class="list-group-item list-group-item-action active">Inicio</a>
+                    <a th:href="@{/escuelas/admin/escuelas}" class="list-group-item list-group-item-action">Equipos</a>
+                    <a th:href="@{/torneos/admin}" class="list-group-item list-group-item-action">Torneos</a>
+                    <a th:href="@{/canchas}" class="list-group-item list-group-item-action">Canchas</a>
+                    <a th:href="@{/lideres}" class="list-group-item list-group-item-action">Líderes</a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-9 col-lg-10 p-4">
+                <h2>{{ request.user.nombres }} {{ request.user.apellidos }}</h2>
+                <p>Aquí podrás ver un resumen de los equipos, tornes y canchas.</p>
+
+                <!-- Tarjetas del Dashboard -->
+                <div class="row mt-4">
+                    <div class="col-12 col-md-6 col-lg-4 mb-4">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Equipos</h5>
+                                <p>Consulte todas las escuelas registradas en el sistema</p>
+                                <i class="fas fa-school fa-3x text-warning mb-3"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-6 col-lg-4 mb-4">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Torneos</h5>
+                                <p>Consulte la información de los torneos realizados en el sistema</p>
+                                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-6 col-lg-4 mb-4">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Canchas</h5>
+                                <p>Consulte información de todas las canchas registradas en el sistema</p>
+                                <i class="fas fa-futbol fa-3x text-warning mb-3"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALES LIMPIOS DE LARAVEL -->
+    <!-- Escuela -->
+    <div class="modal fade" id="consultarEscuela" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Nombre de la Escuela</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <h3>Información General</h3>
+                    <ul class="list-unstyled">
+                        <li><strong>Localidad:</strong> - </li>
+                        <li><strong>Barrio:</strong> - </li>
+                        <li><strong>Dirección:</strong> - </li>
+                        <li><strong>Administrador:</strong> Usuario</li>
+                        <li><strong>Max. Usuarios:</strong> - </li>
+                    </ul>
+
+                    <h3>Contacto</h3>
+                    <ul class="list-unstyled">
+                        <li><strong>Teléfono:</strong> - </li>
+                        <li><strong>Correo Electrónico:</strong> - </li>
+                    </ul>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-danger"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-primary"><i class="fas fa-edit"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entrenamientos -->
+    <div class="modal fade" id="buscarEntrenamientos" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Buscar Entrenamientos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" placeholder="Buscar...">
+                    <ul class="list-group"></ul>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Torneos -->
+    <div class="modal fade" id="consultarTorneos" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Mis Torneos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
+                                <th>Categoría</th>
+                                <th>Ubicación</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td><span class="badge bg-secondary">N/A</span></td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Canchas -->
+    <div class="modal fade" id="consultarCanchas" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Mis Canchas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Dirección</th>
+                                <th>Localidad</th>
+                                <th>Barrio</th>
+                                <th>Estado</th>
+                                <th>Escuela</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td><span class="badge bg-secondary">N/A</span></td>
+                                <td>-</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-warning py-3 mt-3 shadow mt-auto">
+        <div class="container text-start d-flex align-items-center footer-content shadow">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
+            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="validaciones.js"></script>
+
+</body>
+
+</html>

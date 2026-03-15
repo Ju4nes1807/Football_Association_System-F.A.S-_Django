@@ -1,0 +1,322 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <title>Iniciar Sesión | F.A.S</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'fas-blue': '#1a73e8',
+                        'fas-dark-blue': '#0d47a1',
+                        'fas-yellow': '#ffb300',
+                        'fas-gray-bg': '#f4f6f9',
+                        'fas-error': '#dc3545',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .navbar-logo { width: 75px; height: 75px; }
+
+        /* ── Validation states ── */
+        .field-error input {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220,53,69,.2) !important;
+        }
+        .field-ok input {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 2px rgba(25,135,84,.15) !important;
+        }
+
+        .invalid-feedback {
+            color: #dc3545;
+            font-size: .8rem;
+            margin-top: .25rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            animation: slideDown .2s ease;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            z-index: 9999;
+            min-width: 280px;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-weight: 600; font-size: .9rem;
+            display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.18);
+            transform: translateY(80px); opacity: 0;
+            transition: all .35s cubic-bezier(.34,1.56,.64,1);
+        }
+        #toast.show    { transform: translateY(0); opacity: 1; }
+        #toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
+        #toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
+
+        /* ── Submit loader ── */
+        #submitBtn .spinner {
+            display: none;
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        #submitBtn.loading .spinner { display: block; }
+        #submitBtn.loading .btn-text { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+
+<body class="flex flex-col min-h-screen bg-fas-gray-bg">
+
+    <!-- ── NAVBAR ── -->
+    <nav class="bg-fas-blue shadow-lg">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
+                    <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="navbar-logo mr-2 rounded-full shadow-md">
+                    <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
+                </a>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="{% url 'landingpage' %}"
+                        class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-yellow-400 transition duration-300 transform hover:scale-105">
+                        Regresar
+                    </a>
+                </div>
+                <div class="md:hidden">
+                    <button id="menu-button" type="button"
+                        class="text-white hover:text-gray-200 focus:outline-none" aria-label="Toggle navigation">
+                        <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
+            <div class="px-2 pt-2 pb-3">
+                <a href="/landingpage" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">
+                    Regresar
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── CARD ── -->
+    <div class="max-w-md mx-auto mt-12 mb-12 bg-white p-8 rounded-xl shadow-2xl w-full">
+        <h3 class="text-3xl font-extrabold text-fas-dark-blue text-center mb-6">Iniciar Sesión</h3>
+
+        <!-- ── FORMULARIO ── -->
+        <form id="loginForm" action="{% url 'login' %}" method="POST" class="space-y-5" novalidate>
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <p>Correo o contraseña incorrectos.</p>
+        </div>
+        {% endif %}
+
+            <!-- Correo -->
+            <div class="field-group">
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
+                        </svg>
+                    </div>
+                    <input type="email" id="username" name="username"
+                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue focus:border-transparent transition duration-200"
+                        placeholder="ejemplo@correo.com">
+                </div>
+                <p class="invalid-feedback hidden" id="err-username">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg>
+                    <span></span>
+                </p>
+            </div>
+
+            <!-- Contraseña -->
+            <div class="field-group">
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <input type="password" id="password" name="password"
+                        class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue focus:border-transparent transition duration-200"
+                        placeholder="Ingrese su contraseña">
+                    <!-- Toggle show/hide -->
+                    <button type="button" id="togglePassword"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-fas-blue transition"
+                        tabindex="-1" aria-label="Mostrar/ocultar contraseña">
+                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="invalid-feedback hidden" id="err-password">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg>
+                    <span></span>
+                </p>
+            </div>
+
+            <!-- Botón submit -->
+            <button type="submit" id="submitBtn"
+                class="w-full bg-fas-blue text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-fas-dark-blue transition duration-300 transform hover:scale-[1.01] flex items-center justify-center gap-2">
+                <div class="spinner"></div>
+                <span class="btn-text flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                    </svg>
+                    Ingresar
+                </span>
+            </button>
+
+            <div class="text-center mt-4">
+                <p class="text-gray-600">
+                    ¿Olvidaste tu contraseña?
+                    <a href="{% url 'password_reset' %}" class="text-fas-blue font-semibold hover:text-fas-dark-blue transition duration-200 hover:underline">
+                        Recuperala aqui
+                    </a>
+                </p>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- ── FOOTER ── -->
+    <footer class="bg-fas-yellow py-4 shadow-xl mt-auto">
+        <div class="container mx-auto px-4 flex items-center justify-between flex-col sm:flex-row">
+            <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-12 h-12 rounded-full shadow-md"/>
+                <p class="text-gray-800 font-bold">F.A.S</p>
+            </div>
+            <p class="text-gray-700 text-sm">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <!-- ── TOAST ── -->
+    <div id="toast" role="alert" aria-live="polite">
+        <svg id="toast-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"></svg>
+        <span id="toast-msg"></span>
+    </div>
+
+    <!-- ── JAVASCRIPT ── -->
+    <script>
+    (() => {
+        const $ = id => document.getElementById(id);
+
+        /* ── helpers ── */
+        function showError(fieldId, msg) {
+            const errEl = $(`err-${fieldId}`);
+            const input = $(fieldId);
+            errEl.querySelector('span').textContent = msg;
+            errEl.classList.remove('hidden');
+            input.closest('.field-group').classList.add('field-error');
+            input.closest('.field-group').classList.remove('field-ok');
+        }
+
+        function clearError(fieldId) {
+            const errEl = $(`err-${fieldId}`);
+            const input = $(fieldId);
+            errEl.classList.add('hidden');
+            input.closest('.field-group').classList.remove('field-error');
+            input.closest('.field-group').classList.add('field-ok');
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = $('toast');
+            $('toast-msg').textContent = msg;
+            toast.className = `show ${type}`;
+            $('toast-icon').innerHTML = type === 'success'
+                ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>`
+                : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/>`;
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        /* ── Reglas ── */
+        const rules = {
+            username(v) {
+                if (!v.trim()) return 'El correo es obligatorio.';
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido (ej: usuario@dominio.com).';
+                return null;
+            },
+            password(v) {
+                if (!v) return 'La contraseña es obligatoria.';
+                if (v.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
+                return null;
+            },
+        };
+
+        function validateField(id) {
+            const el = $(id);
+            const err = rules[id]?.(el.value) ?? null;
+            err ? showError(id, err) : clearError(id);
+            return !err;
+        }
+
+        /* ── Blur / input en tiempo real ── */
+        ['username', 'password'].forEach(id => {
+            const el = $(id);
+            el.addEventListener('blur', () => validateField(id));
+            el.addEventListener('input', () => {
+                if (el.closest('.field-group').classList.contains('field-error')) validateField(id);
+            });
+        });
+
+        /* ── Toggle show/hide password ── */
+        $('togglePassword').addEventListener('click', () => {
+            const pwd = $('password');
+            const isText = pwd.type === 'text';
+            pwd.type = isText ? 'password' : 'text';
+            $('eyeIcon').innerHTML = isText
+                ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`
+                : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.96 9.96 0 012.293-3.95M6.17 6.17A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.973 9.973 0 01-4.293 5.568M3 3l18 18"/>`;
+        });
+
+        /* ── Submit ── */
+        $('loginForm').addEventListener('submit', function(e) {
+            const allOk = ['username', 'password'].map(validateField).every(Boolean);
+            if (!allOk) {
+                e.preventDefault();
+                showToast('Corrige los errores antes de continuar.', 'error');
+                return;
+            }
+            // Spinner mientras carga
+            $('submitBtn').classList.add('loading');
+            showToast('Verificando credenciales...', 'success');
+        });
+
+        /* ── Navbar mobile ── */
+        $('menu-button').addEventListener('click', () => $('mobile-menu').classList.toggle('hidden'));
+
+    })();
+    </script>
+
+</body>
+</html>

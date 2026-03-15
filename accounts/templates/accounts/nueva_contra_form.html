@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nueva Contraseña | F.A.S</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={theme:{extend:{colors:{'fas-blue':'#1a73e8','fas-dark-blue':'#0d47a1','fas-yellow':'#ffb300','fas-gray-bg':'#f4f6f9'}}}}</script>
+    <style>
+        .field-error input { border-color: #dc3545 !important; box-shadow: 0 0 0 2px rgba(220,53,69,.2) !important; }
+        .invalid-feedback { color: #dc3545; font-size: .8rem; margin-top: .25rem; display: flex; align-items: center; gap: 4px; }
+        #strength-bar { height: 4px; border-radius: 4px; transition: width .3s, background .3s; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen bg-fas-gray-bg">
+
+    <nav class="bg-fas-blue shadow-lg">
+        <div class="container mx-auto px-4 h-20 flex items-center">
+            <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-16 h-16 rounded-full shadow-md mr-2">
+                <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
+            </a>
+        </div>
+    </nav>
+
+    <div class="max-w-md mx-auto mt-12 mb-12 bg-white p-8 rounded-xl shadow-2xl w-full">
+
+        <div class="flex justify-center mb-4">
+            <div class="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+            </div>
+        </div>
+
+        <h3 class="text-2xl font-extrabold text-fas-dark-blue text-center mb-1">Nueva Contraseña</h3>
+        <p class="text-center text-gray-400 text-sm mb-6">Elige una contraseña segura para tu cuenta.</p>
+
+        {% if validlink %}
+        <form method="POST" class="space-y-5" novalidate>
+            {% csrf_token %}
+
+            <!-- Nueva contraseña -->
+            <div class="field-group {% if form.new_password1.errors %}field-error{% endif %}">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                <div class="relative">
+                    <input type="password" name="new_password1" id="new_password1"
+                        class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
+                        placeholder="Mínimo 8 caracteres">
+                    <button type="button" id="toggleNew"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-fas-blue transition" tabindex="-1">
+                        <svg id="eyeNew" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="mt-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div id="strength-bar" style="width:0%"></div>
+                </div>
+                <p id="strength-label" class="text-xs mt-1 text-gray-400"></p>
+                {% for error in form.new_password1.errors %}
+                    <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
+                {% endfor %}
+            </div>
+
+            <!-- Confirmar contraseña -->
+            <div class="field-group {% if form.new_password2.errors %}field-error{% endif %}">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Contraseña</label>
+                <div class="relative">
+                    <input type="password" name="new_password2" id="new_password2"
+                        class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
+                        placeholder="Repite tu contraseña">
+                    <button type="button" id="toggleConfirm"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-fas-blue transition" tabindex="-1">
+                        <svg id="eyeConfirm" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                {% for error in form.new_password2.errors %}
+                    <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
+                {% endfor %}
+            </div>
+
+            <button type="submit"
+                class="w-full bg-fas-blue text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-fas-dark-blue transition duration-300 transform hover:scale-[1.01] flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Guardar nueva contraseña
+            </button>
+        </form>
+
+        {% else %}
+        <!-- Link inválido o expirado -->
+        <div class="text-center">
+            <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
+                El enlace es inválido o ha expirado. Solicita uno nuevo.
+            </div>
+            <a href="{% url 'password_reset' %}"
+                class="w-full bg-fas-blue text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-fas-dark-blue transition flex items-center justify-center gap-2">
+                Solicitar nuevo enlace
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer class="bg-fas-yellow py-4 shadow-xl mt-auto">
+        <div class="container mx-auto px-4 flex items-center justify-between flex-col sm:flex-row">
+            <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-12 h-12 rounded-full"/>
+                <p class="text-gray-800 font-bold">F.A.S</p>
+            </div>
+            <p class="text-gray-700 text-sm">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <script>
+    (() => {
+        const $ = id => document.getElementById(id);
+
+        function makeToggle(btnId, inputId, iconId) {
+            $(btnId)?.addEventListener('click', () => {
+                const inp = $(inputId), isText = inp.type === 'text';
+                inp.type = isText ? 'password' : 'text';
+                $(iconId).innerHTML = isText
+                    ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`
+                    : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.96 9.96 0 012.293-3.95M6.17 6.17A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.973 9.973 0 01-4.293 5.568M3 3l18 18"/>`;
+            });
+        }
+        makeToggle('toggleNew',     'new_password1', 'eyeNew');
+        makeToggle('toggleConfirm', 'new_password2', 'eyeConfirm');
+
+        $('new_password1')?.addEventListener('input', function() {
+            const v = this.value; let s = 0;
+            if (v.length>=8) s++; if (/[A-Z]/.test(v)) s++; if (/[0-9]/.test(v)) s++; if (/[^a-zA-Z0-9]/.test(v)) s++;
+            const lvl=[{p:'0%',c:'',t:''},{p:'25%',c:'#ef4444',t:'🔴 Muy débil'},{p:'50%',c:'#f97316',t:'🟠 Débil'},{p:'75%',c:'#eab308',t:'🟡 Regular'},{p:'100%',c:'#22c55e',t:'🟢 Fuerte'}][s];
+            $('strength-bar').style.cssText = `width:${v.length?lvl.p:'0%'};background:${lvl.c}`;
+            $('strength-label').textContent = v.length ? lvl.t : '';
+        });
+    })();
+    </script>
+</body>
+</html>
