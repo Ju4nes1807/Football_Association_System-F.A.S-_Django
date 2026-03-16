@@ -361,7 +361,7 @@
                 let age=hoy.getFullYear()-b.getFullYear();
                 if (hoy.getMonth()-b.getMonth()<0||(hoy.getMonth()-b.getMonth()===0&&hoy.getDate()<b.getDate())) age--;
                 if (b>hoy) return 'La fecha no puede ser futura.';
-                if (age<16) return 'Debes tener al menos 16 años.';
+                if (age<20) return 'Debes tener al menos 20 años.';
                 if (age>100) return 'Fecha inválida.';
                 return null;
             },
