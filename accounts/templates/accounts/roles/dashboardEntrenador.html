@@ -69,8 +69,10 @@
                 <h5 class="mb-3 text-primary">Inicio</h5>
 
                 <div class="list-group">
-                    <a th:href="@{/lider/dashboardLider}"
+                    <a href="{% url 'dashboard_entrenador' %}"
                         class="list-group-item list-group-item-action active">Inicio</a>
+                    <a href="{% url 'inscripciones:mi_equipo' %}"
+                        class="list-group-item list-group-item-action">Equipo</a>
                     <a th:href="@{/lider/Entrenamientos}" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a th:href="@{/torneos/lider}" class="list-group-item list-group-item-action">Torneos</a>
                     <a th:href="@{/categorias}" class="list-group-item list-group-item-action">Categorias</a>
@@ -91,11 +93,7 @@
                                 <h5 class="card-title">Equipo</h5>
                                 <p>Consulte información sobre su equipo</p>
                                 <div class="d-flex flex-column align-items-center">
-                                    <i class="fas fa-school fa-3x text-warning mb-2"></i>
-                                    <button class="btn btn-warning btn-sm shadow-sm" data-bs-toggle="modal"
-                                        data-bs-target="#consultarEscuela">
-                                        Consultar Escuela
-                                    </button>
+                                    <i class="fas fa-school fa-3x text-warning mb-3"></i>
                                 </div>
                             </div>
                         </div>

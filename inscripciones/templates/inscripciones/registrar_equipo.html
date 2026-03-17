@@ -1,0 +1,337 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <title>Registrar Equipo | F.A.S</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={theme:{extend:{colors:{'fas-blue':'#1a73e8','fas-dark-blue':'#0d47a1','fas-yellow':'#ffb300','fas-gray-bg':'#f4f6f9'}}}}</script>
+    <style>
+        .field-error input, .field-error select, .field-error textarea {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220,53,69,.2) !important;
+        }
+        .field-ok input, .field-ok select, .field-ok textarea {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 2px rgba(25,135,84,.15) !important;
+        }
+        .invalid-feedback { color: #dc3545; font-size: .8rem; margin-top: .25rem; display: flex; align-items: center; gap: 4px; }
+        #toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            min-width: 280px; padding: 14px 20px; border-radius: 12px;
+            font-weight: 600; font-size: .9rem; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.18); transform: translateY(80px); opacity: 0;
+            transition: all .35s cubic-bezier(.34,1.56,.64,1);
+        }
+        #toast.show    { transform: translateY(0); opacity: 1; }
+        #toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
+        #toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
+        .logo-preview { transition: all .3s ease; }
+    </style>
+</head>
+
+<body class="flex flex-col min-h-screen bg-fas-gray-bg">
+
+    <!-- NAVBAR -->
+    <nav class="bg-fas-blue shadow-lg">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
+                    <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-16 h-16 rounded-full shadow-md mr-2">
+                    <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="{% url 'dashboard_entrenador' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition duration-300 transform hover:scale-105">Regresar</a>
+                    <form method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Cerrar sesión</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CARD -->
+    <div class="max-w-xl mx-auto mt-8 mb-12 bg-white p-8 rounded-xl shadow-2xl w-full">
+
+        <h3 class="text-3xl font-extrabold text-fas-dark-blue text-center mb-1">Registrar Equipo</h3>
+        <p class="text-center text-gray-400 text-sm mb-6">
+            Completa los datos de tu equipo. Quedará en espera de aprobación.
+        </p>
+
+        {% if form.non_field_errors %}
+            <div id="server-errors" hidden
+                data-msg="{% for e in form.non_field_errors %}{{ e }} {% endfor %}"
+                data-type="error"></div>
+        {% endif %}
+
+        <form id="equipoForm" method="POST" enctype="multipart/form-data" action="{% url 'inscripciones:registrar_equipo' %}" novalidate>
+            {% csrf_token %}
+            <div class="space-y-4">
+
+                <!-- Nombre -->
+                <div class="field-group {% if form.nombre.errors %}field-error{% endif %}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Equipo</label>
+                    <input type="text" id="nombre" name="nombre"
+                        value="{{ form.nombre.value|default:'' }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
+                        placeholder="Ej: Deportivo FAS">
+                    <p class="invalid-feedback hidden" id="err-nombre"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
+                    {% for error in form.nombre.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
+                </div>
+
+                <!-- Descripción -->
+                <div class="field-group {% if form.descripcion.errors %}field-error{% endif %}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descripción <span class="text-gray-400 font-normal">(opcional)</span></label>
+                    <textarea id="descripcion" name="descripcion" rows="3"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition resize-none"
+                        placeholder="Breve descripción del equipo">{{ form.descripcion.value|default:'' }}</textarea>
+                </div>
+
+                <!-- Año fundación -->
+                <div class="field-group {% if form.anio_fundacion.errors %}field-error{% endif %}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Año de Fundación</label>
+                    <input type="number" id="anio_fundacion" name="anio_fundacion"
+                        value="{{ form.anio_fundacion.value|default:'' }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
+                        placeholder="Ej: 2005" min="1900" max="2025">
+                    <p class="invalid-feedback hidden" id="err-anio_fundacion"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
+                    {% for error in form.anio_fundacion.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
+                </div>
+
+                <!-- Categoría -->
+                <div class="field-group {% if form.categoria.errors %}field-error{% endif %}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                    <select id="categoria" name="categoria"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition bg-white">
+                        <option value="">Seleccione una categoría</option>
+                        <option value="SUB8"  {% if form.categoria.value == 'SUB8'  %}selected{% endif %}>Sub-8</option>
+                        <option value="SUB10" {% if form.categoria.value == 'SUB10' %}selected{% endif %}>Sub-10</option>
+                        <option value="SUB12" {% if form.categoria.value == 'SUB12' %}selected{% endif %}>Sub-12</option>
+                        <option value="SUB14" {% if form.categoria.value == 'SUB14' %}selected{% endif %}>Sub-14</option>
+                        <option value="SUB16" {% if form.categoria.value == 'SUB16' %}selected{% endif %}>Sub-16</option>
+                        <option value="SUB18" {% if form.categoria.value == 'SUB18' %}selected{% endif %}>Sub-18</option>
+                        <option value="MAYOR" {% if form.categoria.value == 'MAYOR' %}selected{% endif %}>Mayor/Libre</option>
+                    </select>
+                    <p class="invalid-feedback hidden" id="err-categoria"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
+                    {% for error in form.categoria.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
+                </div>
+
+                <!-- Localidad — API Bogotá -->
+                <div class="field-group {% if form.localidad.errors %}field-error{% endif %}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Localidad</label>
+                    <select id="localidad" name="localidad"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition bg-white">
+                        <option value="">Cargando localidades...</option>
+                    </select>
+                    <p class="invalid-feedback hidden" id="err-localidad"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
+                    {% for error in form.localidad.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
+                </div>
+
+                <!-- Barrio — se carga según localidad -->
+                <div class="field-group {% if form.barrio.errors %}field-error{% endif %}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Barrio</label>
+                    <select id="barrio" name="barrio" disabled
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition bg-white disabled:opacity-50">
+                        <option value="">Selecciona una localidad primero</option>
+                    </select>
+                    <p class="invalid-feedback hidden" id="err-barrio"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
+                    {% for error in form.barrio.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
+                </div>
+
+                <!-- Logo -->
+                <div class="field-group">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Logo del Equipo <span class="text-gray-400 font-normal">(opcional)</span></label>
+                    <div class="flex items-center gap-4">
+                        <img id="logo-preview" src="" alt="Preview" class="logo-preview w-16 h-16 rounded-full object-cover border-2 border-gray-200 hidden">
+                        <div class="flex-1">
+                            <input type="file" id="logo" name="logo" accept="image/*"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition text-sm">
+                            <p class="text-xs text-gray-400 mt-1">PNG, JPG o WEBP. Máx 2MB.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-fas-blue text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-fas-dark-blue transition duration-300 transform hover:scale-[1.01] flex items-center justify-center gap-2 mt-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Registrar Equipo
+                </button>
+
+            </div>
+        </form>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-fas-yellow py-4 shadow-xl mt-auto">
+        <div class="container mx-auto px-4 flex items-center justify-between flex-col sm:flex-row">
+            <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-12 h-12 rounded-full"/>
+                <p class="text-gray-800 font-bold">F.A.S</p>
+            </div>
+            <p class="text-gray-700 text-sm">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <!-- TOAST -->
+    <div id="toast" role="alert" aria-live="polite">
+        <svg id="toast-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"></svg>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+    (() => {
+        const $ = id => document.getElementById(id);
+
+        /* ── Toast ── */
+        function showToast(msg, type = 'success') {
+            const t = $('toast');
+            $('toast-msg').textContent = msg;
+            t.className = `show ${type}`;
+            $('toast-icon').innerHTML = type === 'success'
+                ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>`
+                : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/>`;
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => t.classList.remove('show'), 4000);
+        }
+
+        /* ── Helpers ── */
+        function showError(id, msg) {
+            const el = $(`err-${id}`), inp = $(id);
+            if (!el || !inp) return;
+            el.querySelector('span').textContent = msg;
+            el.classList.remove('hidden');
+            inp.closest('.field-group').classList.add('field-error');
+            inp.closest('.field-group').classList.remove('field-ok');
+        }
+        function clearError(id) {
+            const el = $(`err-${id}`), inp = $(id);
+            if (!el || !inp) return;
+            el.classList.add('hidden');
+            inp.closest('.field-group').classList.remove('field-error');
+            inp.closest('.field-group').classList.add('field-ok');
+        }
+
+        /* ── Reglas ── */
+        const anioActual = new Date().getFullYear();
+        const rules = {
+            nombre(v)         { if (!v.trim()) return 'El nombre es obligatorio.'; if (v.trim().length < 3) return 'Mínimo 3 caracteres.'; return null; },
+            anio_fundacion(v) { if (!v) return 'El año es obligatorio.'; const a = parseInt(v); if (a < 1900 || a > anioActual) return `Entre 1900 y ${anioActual}.`; return null; },
+            categoria(v)      { if (!v) return 'Debes seleccionar una categoría.'; return null; },
+            localidad(v)      { if (!v) return 'Debes seleccionar una localidad.'; return null; },
+            barrio(v)         { if (!v) return 'Debes seleccionar un barrio.'; return null; },
+        };
+
+        function validateField(id) {
+            const el = $(id); if (!el) return true;
+            const err = rules[id]?.(el.value) ?? null;
+            err ? showError(id, err) : clearError(id);
+            return !err;
+        }
+
+        ['nombre','anio_fundacion','categoria','localidad','barrio'].forEach(id => {
+            const el = $(id); if (!el) return;
+            el.addEventListener('blur',  () => validateField(id));
+            el.addEventListener('change', () => validateField(id));
+        });
+
+        $('equipoForm').addEventListener('submit', e => {
+            const fields = ['nombre','anio_fundacion','categoria','localidad','barrio'];
+            if (!fields.map(validateField).every(Boolean)) {
+                e.preventDefault();
+                showToast('Corrige los errores antes de continuar.', 'error');
+            }
+        });
+
+        /* ── Preview logo ── */
+        $('logo').addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('El logo no puede superar 2MB.', 'error');
+                this.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => {
+                const preview = $('logo-preview');
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        /* ── API Bogotá — Localidades y Barrios ── */
+        const localidadSelect = $('localidad');
+const barrioSelect    = $('barrio');
+
+const localidadGuardada = "{{ form.localidad.value|default:'' }}";
+const barrioGuardado    = "{{ form.barrio.value|default:'' }}";
+
+// ── Cargar localidades desde proxy Django ──
+async function cargarLocalidades() {
+    try {
+        const res  = await fetch('/inscripciones/api/localidades/');
+        const data = await res.json();
+        localidadSelect.innerHTML = '<option value="">Seleccione una localidad</option>';
+
+        data.localidades.forEach(nombre => {
+            const opt = document.createElement('option');
+            opt.value       = nombre;
+            opt.textContent = nombre;
+            if (nombre === localidadGuardada) opt.selected = true;
+            localidadSelect.appendChild(opt);
+        });
+
+        if (localidadGuardada) {
+            await cargarBarrios(localidadGuardada, barrioGuardado);
+        }
+    } catch(e) {
+        console.error('Error cargando localidades:', e);
+    }
+}
+
+async function cargarBarrios(localidad, barrioSeleccionado = '') {
+    barrioSelect.disabled = true;
+    barrioSelect.innerHTML = '<option value="">Cargando barrios...</option>';
+    try {
+        const res  = await fetch(`/inscripciones/api/barrios/?localidad=${encodeURIComponent(localidad)}`);
+        const data = await res.json();
+
+        barrioSelect.innerHTML = '<option value="">Seleccione un barrio</option>';
+        data.barrios.forEach(nombre => {
+            const opt = document.createElement('option');
+            opt.value       = nombre;
+            opt.textContent = nombre;
+            if (nombre === barrioSeleccionado) opt.selected = true;
+            barrioSelect.appendChild(opt);
+        });
+        barrioSelect.disabled = false;
+    } catch(e) {
+        console.error('Error cargando barrios:', e);
+        barrioSelect.disabled = false;
+    }
+}
+
+localidadSelect.addEventListener('change', function() {
+    barrioSelect.innerHTML = '<option value="">Seleccione un barrio</option>';
+    barrioSelect.disabled = true;
+    if (this.value) cargarBarrios(this.value);
+    validateField('localidad');
+});
+
+barrioSelect.addEventListener('change', () => validateField('barrio'));
+
+// Errores del servidor como toast
+const serverErrors = $('server-errors');
+if (serverErrors) showToast(serverErrors.dataset.msg, serverErrors.dataset.type);
+
+// Iniciar carga
+cargarLocalidades();
+
+    })();
+    </script>
+</body>
+</html>
