@@ -56,7 +56,7 @@
 
             <!-- SIDEBAR -->
             <div class="col-12 col-md-3 col-lg-2 sidebar">
-                <h5 class="mb-3 text-primary">Inicio</h5>
+                <h5 class="mb-3 text-primary">Equipo</h5>
 
                 <div class="list-group">
                     <a href="{% url 'dashboard_entrenador' %}"
@@ -65,7 +65,6 @@
                         class="list-group-item list-group-item-action active">Equipo</a>
                     <a th:href="@{/lider/Entrenamientos}" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a th:href="@{/torneos/lider}" class="list-group-item list-group-item-action">Torneos</a>
-                    <a th:href="@{/categorias}" class="list-group-item list-group-item-action">Categorias</a>
                     <a th:href="@{/canchas}" class="list-group-item list-group-item-action">Canchas</a>
                     <a th:href="@{/jugadores}" class="list-group-item list-group-item-action">Jugadores</a>
                 </div>
@@ -113,8 +112,13 @@
                             </div>
                         {% elif equipo.estado == 'RECHAZADO' %}
                             <div class="alert alert-danger">
-                                <i class="fas fa-times-circle me-2"></i>Tu equipo fue rechazado. Puedes editarlo y volver a enviarlo.
-                            </div>
+        <i class="fas fa-times-circle me-2"></i>
+        Tu equipo fue rechazado. Puedes editarlo y volver a enviarlo.
+        {% if equipo.motivo_rechazo %}
+            <hr class="my-2">
+            <strong>Motivo:</strong> {{ equipo.motivo_rechazo }}
+        {% endif %}
+    </div>
                         {% endif %}
 
                         <!-- Info del equipo -->
@@ -135,7 +139,7 @@
 
                         <!-- Acciones — CORREGIDO: urls con namespace -->
                         <div class="d-flex gap-2 mt-3 flex-wrap">
-                            <a  class="btn btn-primary">
+                            <a href="{% url 'inscripciones:editar_equipo' equipo.id %}" class="btn btn-primary">
                                 <i class="fas fa-edit me-1"></i> Editar Equipo
                             </a>
                             <button type="button" class="btn btn-danger"
@@ -146,7 +150,7 @@
                                 <i class="fas fa-trash me-1"></i> Eliminar Equipo
                             </button>
                             <form id="formEliminarEquipo"
-                                
+                                action="{% url 'inscripciones:eliminar_equipo' equipo.id %}"
                                 method="POST" class="d-none">
                                 {% csrf_token %}
                             </form>
@@ -188,7 +192,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    ¿Estás seguro de que deseas eliminar el equipo <strong id="modal-nombre-equipo"></strong>? Esta acción no se puede deshacer.
+                    ¿Estás seguro de que deseas eliminar el equipo, esto incluye toda la plantilla de jugadores <strong id="modal-nombre-equipo"></strong>? Esta acción no se puede deshacer.
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

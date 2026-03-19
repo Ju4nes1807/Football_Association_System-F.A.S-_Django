@@ -92,9 +92,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'jariza776@gmail.com'      # ← tu correo
-EMAIL_HOST_PASSWORD = 'njox rsaj aozn nxqn'     # ← contraseña de aplicación
-DEFAULT_FROM_EMAIL = 'F.A.S <jariza776@gmail.com'
+EMAIL_HOST_USER = 'footballfas2026@gmail.com'      # ← tu correo
+EMAIL_HOST_PASSWORD = 'hjfy zvnx ksjp kowd'     # ← contraseña de aplicación
+DEFAULT_FROM_EMAIL = 'F.A.S <footballfas2026@gmail.com'
 WSGI_APPLICATION = 'f_a_s.wsgi.application'
 
 

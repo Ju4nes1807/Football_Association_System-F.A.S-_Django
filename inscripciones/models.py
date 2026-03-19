@@ -26,6 +26,7 @@ class Equipo(models.Model):
     _localidad      = models.CharField(max_length=100, db_column='localidad')
     _barrio         = models.CharField(max_length=100, db_column='barrio')
     _estado         = models.CharField(max_length=10, choices=Estado.choices, default=Estado.ESPERA, db_column='estado')
+    _motivo_rechazo = models.TextField(db_column='motivo_rechazo', blank=True, null=True)
     entrenador      = models.OneToOneField(Entrenador, on_delete=models.CASCADE, related_name='equipo')
     fecha_registro  = models.DateTimeField(auto_now_add=True)
 
@@ -100,6 +101,14 @@ class Equipo(models.Model):
     @property
     def categoria_display(self):
         return self.get__categoria_display()
+    
+    @property
+    def motivo_rechazo(self):
+        return self._motivo_rechazo
+
+    @motivo_rechazo.setter
+    def motivo_rechazo(self, value):
+        self._motivo_rechazo = value.strip() if value else None
 
     def __str__(self): return self._nombre
 

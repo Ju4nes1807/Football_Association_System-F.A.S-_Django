@@ -1,0 +1,370 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <title>Equipos | F.A.S</title>
+    <style>
+        .list-group-item.active { background-color: #0d6efd; border-color: #0d6efd; color: #fff; }
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+        .fas-toast { min-width: 280px; padding: 14px 20px; border-radius: 12px; font-weight: 600; font-size: .9rem; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); transform: translateY(80px); opacity: 0; transition: all .35s cubic-bezier(.34,1.56,.64,1); }
+        .fas-toast.show    { transform: translateY(0); opacity: 1; }
+        .fas-toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
+        .fas-toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- NAVBAR -->
+    <div class="navbar navbar-expand bg-primary shadow mb-4">
+        <a href="{% url 'landingpage' %}">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+        </a>
+        <p class="navbar-brand text-light fs-2 shadow">F.A.S</p>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <form method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesión</button>
+                    </form>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container-fluid flex-grow-1">
+        <div class="row">
+
+            <!-- SIDEBAR -->
+            <div class="col-12 col-md-3 col-lg-2 sidebar mb-3 mt-4 pt-3">
+                <h5 class="mb-3 text-primary">Equipos</h5>
+                <div class="list-group">
+                    <a href="{% url 'dashboard_admin' %}" class="list-group-item list-group-item-action">Inicio</a>
+                    <a href="{% url 'inscripciones:lista_equipos' %}" class="list-group-item list-group-item-action active">Equipos</a>
+                    <a href="#" class="list-group-item list-group-item-action">Torneos</a>
+                    <a href="#" class="list-group-item list-group-item-action">Canchas</a>
+                </div>
+            </div>
+
+            <!-- CONTENIDO -->
+            <div class="col-12 col-md-9 col-lg-10 p-4">
+
+                <h3 class="mt-3"><i class="bi bi-shield-fill"></i> Equipos</h3>
+
+                <!-- FILTROS -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <form method="GET" action="{% url 'inscripciones:lista_equipos' %}">
+                            <div class="row g-3">
+
+                                <!-- Nombre -->
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-semibold">Nombre</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                                        <input type="text" name="nombre" value="{{ nombre }}"
+                                            class="form-control" placeholder="Nombre del equipo">
+                                    </div>
+                                </div>
+
+                                <!-- Localidad -->
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-semibold">Localidad</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                        <input type="text" name="localidad" value="{{ localidad }}"
+                                            class="form-control" placeholder="Ej: Kennedy">
+                                    </div>
+                                </div>
+
+                                <!-- Estado -->
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-semibold">Estado</label>
+                                    <select name="estado" class="form-select">
+                                        <option value="">Todos</option>
+                                        {% for val, label in estados %}
+                                            <option value="{{ val }}" {% if estado == val %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Buscar
+                                </button>
+                                <a href="{% url 'inscripciones:lista_equipos' %}" class="btn btn-warning">
+                                    <i class="fas fa-sync-alt me-1"></i> Limpiar
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TOTAL RESULTADOS -->
+                {% if nombre or localidad or estado %}
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        {{ total }} resultado{{ total|pluralize }} encontrado{{ total|pluralize }}
+                    </p>
+                {% endif %}
+
+                <!-- CARDS -->
+                <div class="row">
+                    {% for equipo in equipos %}
+                    <div class="col-12 col-md-6 col-lg-4 mb-4">
+                        <div class="card border-warning h-100 shadow-sm">
+                            <div class="card-body text-start">
+
+                                <!-- Logo y nombre -->
+                                <div class="d-flex align-items-center gap-3 mb-3">
+                                    {% if equipo.logo %}
+                                        <img src="{{ equipo.logo.url }}" alt="Logo"
+                                            class="rounded-circle object-fit-cover border border-2 border-warning"
+                                            style="width:50px;height:50px">
+                                    {% else %}
+                                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center border border-2 border-warning"
+                                            style="width:50px;height:50px">
+                                            <i class="fas fa-shield-alt text-white"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <h5 class="card-title mb-0">{{ equipo.nombre }}</h5>
+                                        <small class="text-muted">{{ equipo.categoria_display }}</small>
+                                    </div>
+                                </div>
+
+                                <!-- Badge estado -->
+                                <p>
+                                    <strong>Estado:</strong>
+                                    <span class="badge
+                                        {% if equipo.estado == 'APROBADO' %}bg-success
+                                        {% elif equipo.estado == 'RECHAZADO' %}bg-danger
+                                        {% else %}bg-warning text-dark{% endif %}">
+                                        {{ equipo.estado_display }}
+                                    </span>
+                                </p>
+
+                                <!-- Datos equipo -->
+                                <p><strong><i class="fas fa-map-marker-alt me-1"></i>Localidad:</strong> {{ equipo.localidad }}</p>
+                                <p><strong><i class="fas fa-map-pin me-1"></i>Barrio:</strong> {{ equipo.barrio }}</p>
+                                <p><strong><i class="fas fa-calendar me-1"></i>Fundado:</strong> {{ equipo.anio_fundacion }}</p>
+                                <p class="text-muted small"><i class="fas fa-clock me-1"></i>Registrado: {{ equipo.fecha_registro|date:"d/m/Y H:i" }}</p>
+
+                                <hr class="my-2">
+
+                                <!-- Datos entrenador -->
+                                <p class="text-primary fw-semibold mb-2"><i class="fas fa-user-tie me-1"></i>Entrenador</p>
+                                <p><strong>Nombre:</strong> {{ equipo.entrenador.nombres }} {{ equipo.entrenador.apellidos }}</p>
+                                <p><strong>Documento:</strong> {{ equipo.entrenador.num_documento }}</p>
+                                <p><strong>Correo:</strong> {{ equipo.entrenador.email }}</p>
+                                <p><strong>Teléfono:</strong> {{ equipo.entrenador.telefono }}</p>
+                                <p><strong>Experiencia:</strong> {{ equipo.entrenador.experiencia }}</p>
+
+                                <!-- Acciones -->
+<div class="d-flex gap-2 mt-3 flex-wrap">
+    {% if equipo.estado == 'ESPERA' %}
+
+        <!-- Aprobar directo -->
+        <form method="POST" action="{% url 'inscripciones:aprobar_equipo' equipo.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="aprobar">
+            <button type="submit" class="btn btn-success btn-sm">
+                <i class="fas fa-check"></i> Aprobar
+            </button>
+        </form>
+
+        <!-- Rechazar abre modal -->
+        <button type="button" class="btn btn-warning btn-sm"
+            data-bs-toggle="modal"
+            data-bs-target="#modalRechazo"
+            data-equipo-id="{{ equipo.id }}"
+            data-equipo-nombre="{{ equipo.nombre }}">
+            <i class="fas fa-times"></i> Rechazar
+        </button>
+
+    {% endif %}
+
+    <!-- Eliminar -->
+    <button type="button" class="btn btn-danger btn-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#modalConfirmacion"
+        data-form-id="formEliminar_{{ equipo.id }}"
+        data-nombre="{{ equipo.nombre }}">
+        <i class="fas fa-trash"></i>
+    </button>
+    <form id="formEliminar_{{ equipo.id }}"
+        action="{% url 'inscripciones:eliminar_equipo' equipo.id %}"
+        method="POST" class="d-none">
+        {% csrf_token %}
+    </form>
+</div>
+
+<!-- Motivo rechazo si existe -->
+{% if equipo.estado == 'RECHAZADO' and equipo.motivo_rechazo %}
+    <div class="alert alert-danger mt-2 mb-0 py-2 small">
+        <i class="fas fa-exclamation-circle me-1"></i>
+        <strong>Motivo:</strong> {{ equipo.motivo_rechazo }}
+    </div>
+{% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {% if nombre or localidad or estado %}
+                                No se encontraron equipos con esos criterios.
+                            {% else %}
+                                No hay equipos registrados.
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RECHAZO -->
+<div class="modal fade" id="modalRechazo" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-times-circle me-2"></i>Rechazar Equipo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formRechazo" method="POST" action="">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="rechazar">
+                <div class="modal-body">
+                    <p>Vas a rechazar el equipo <strong id="rechazo-nombre-equipo"></strong>.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Motivo del rechazo <span class="text-danger">*</span></label>
+                        <textarea name="motivo" id="motivo-rechazo" rows="4"
+                            class="form-control"
+                            placeholder="Explica el motivo del rechazo..."></textarea>
+                        <div class="invalid-feedback" id="err-motivo">
+                            El motivo es obligatorio.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning" id="btnConfirmarRechazo">
+                        <i class="fas fa-times me-1"></i> Confirmar rechazo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- FOOTER -->
+    <footer class="bg-warning py-3 shadow mt-auto">
+        <div class="container text-start d-flex align-items-center shadow">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <!-- MODAL CONFIRMACIÓN -->
+    <div class="modal fade" id="modalConfirmacion" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar eliminación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas eliminar el equipo <strong id="modal-nombre-equipo"></strong>? Esta acción no se puede deshacer.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sí, eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast-container">
+        <div class="fas-toast" id="fas-toast">
+            <span id="fas-toast-msg"></span>
+        </div>
+    </div>
+
+    <div id="django-messages" hidden
+        {% if messages %}
+            {% for message in messages %}
+                data-msg="{{ message }}"
+                data-type="{{ message.tags }}"
+            {% endfor %}
+        {% endif %}
+    ></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (() => {
+        function showToast(msg, type='success') {
+            const t = document.getElementById('fas-toast');
+            document.getElementById('fas-toast-msg').textContent = msg;
+            t.className = `fas-toast show ${type}`;
+            setTimeout(() => t.classList.remove('show'), 4000);
+        }
+
+        let formId = null;
+        document.querySelectorAll('[data-bs-target="#modalConfirmacion"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                formId = btn.getAttribute('data-form-id');
+                document.getElementById('modal-nombre-equipo').textContent = btn.getAttribute('data-nombre');
+            });
+        });
+        document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+            if (formId) document.getElementById(formId)?.submit();
+        });
+
+        const djangoMsgs = document.getElementById('django-messages');
+        if (djangoMsgs && djangoMsgs.dataset.msg) {
+            showToast(djangoMsgs.dataset.msg, djangoMsgs.dataset.type || 'success');
+        }
+
+        // Modal rechazo
+const modalRechazo = document.getElementById('modalRechazo');
+modalRechazo.addEventListener('show.bs.modal', function(e) {
+    const btn       = e.relatedTarget;
+    const equipoId  = btn.getAttribute('data-equipo-id');
+    const nombre    = btn.getAttribute('data-equipo-nombre');
+    document.getElementById('rechazo-nombre-equipo').textContent = nombre;
+    document.getElementById('formRechazo').action = `/inscripciones/equipo/${equipoId}/aprobar/`;
+    document.getElementById('motivo-rechazo').value = '';
+    document.getElementById('motivo-rechazo').classList.remove('is-invalid');
+});
+
+// Validar motivo antes de enviar
+document.getElementById('formRechazo').addEventListener('submit', function(e) {
+    const motivo = document.getElementById('motivo-rechazo').value.trim();
+    if (!motivo) {
+        e.preventDefault();
+        document.getElementById('motivo-rechazo').classList.add('is-invalid');
+    }
+});
+    })();
+    </script>
+</body>
+</html>

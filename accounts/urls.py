@@ -15,7 +15,10 @@ urlpatterns = [
     path('perfil/editar/', views.editar_perfil, name = 'editar_perfil'),
     path('password_reset/', auth_views.PasswordResetView.as_view(
     template_name='accounts/recuperar_contra.html',
-    form_class=CustomPasswordResetForm
+    form_class=CustomPasswordResetForm,
+    email_template_name='accounts/password_reset_email.txt',       # ← texto plano (obligatorio)
+    html_email_template_name='accounts/password_reset_email.html', # ← este es el HTML bonito
+    subject_template_name='accounts/password_reset_subject.txt',
 ), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(
         template_name='accounts/recuperar_contra_enviado.html'

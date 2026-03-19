@@ -7,7 +7,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from django.db import IntegrityError
 from .models import Equipo
-from .forms import RegistroEquipoForm
+from .forms import RegistroEquipoForm, EditarEquipoForm
 
 
 def _get_equipo_entrenador(user):
@@ -420,23 +420,6 @@ def lista_equipos(request):
     if request.user.rol != 'ADMIN':
         return redirect('dashboard_entrenador')
 
-    estado  = request.GET.get('estado', '')
-    equipos = Equipo.objects.all().order_by('-fecha_registro')
-    if estado:
-        equipos = equipos.filter(_estado=estado)
-
-    return render(request, 'inscripciones/lista_equipos.html', {
-        'equipos':       equipos,
-        'estado_actual': estado,
-        'estados':       Equipo.Estado.choices,
-    })
-
-
-@login_required
-def buscar_equipos(request):
-    if request.user.rol != 'ADMIN':
-        return redirect('dashboard_entrenador')
-
     nombre    = request.GET.get('nombre', '').strip()
     localidad = request.GET.get('localidad', '').strip()
     estado    = request.GET.get('estado', '').strip()
@@ -449,7 +432,7 @@ def buscar_equipos(request):
     if estado:
         equipos = equipos.filter(_estado=estado)
 
-    return render(request, 'inscripciones/buscar_equipos.html', {
+    return render(request, 'inscripciones/lista_equipos.html', {
         'equipos':   equipos,
         'nombre':    nombre,
         'localidad': localidad,
@@ -457,7 +440,6 @@ def buscar_equipos(request):
         'estados':   Equipo.Estado.choices,
         'total':     equipos.count(),
     })
-
 
 @login_required
 def aprobar_equipo(request, equipo_id):
@@ -468,10 +450,17 @@ def aprobar_equipo(request, equipo_id):
     accion = request.POST.get('accion')
 
     if accion == 'aprobar':
-        equipo.estado = Equipo.Estado.APROBADO
+        equipo.estado         = Equipo.Estado.APROBADO
+        equipo.motivo_rechazo = None  # ← limpiar si había uno previo
         messages.success(request, f'Equipo "{equipo.nombre}" aprobado.')
+
     elif accion == 'rechazar':
-        equipo.estado = Equipo.Estado.RECHAZADO
+        motivo = request.POST.get('motivo', '').strip()
+        if not motivo:
+            messages.error(request, 'Debes indicar el motivo del rechazo.')
+            return redirect('inscripciones:lista_equipos')
+        equipo.estado         = Equipo.Estado.RECHAZADO
+        equipo.motivo_rechazo = motivo
         messages.error(request, f'Equipo "{equipo.nombre}" rechazado.')
 
     equipo.save()

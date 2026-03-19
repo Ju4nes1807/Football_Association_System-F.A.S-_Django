@@ -9,6 +9,7 @@ from .services.email_service import enviar_credenciales_admin
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from inscripciones.models import Equipo
 
 def _handle_integrity_error(form, e):
     """Mapea errores de BD al campo correspondiente."""
@@ -170,7 +171,14 @@ def editar_perfil(request):
     return render(request, 'accounts/roles/editar_perfil.html', {'form': form})
 @login_required
 def dashboard_admin(request):
-    return render(request, 'accounts/roles/dashboardAdmin.html')
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    total_equipos = Equipo.objects.count()
+
+    return render(request, 'accounts/roles/dashboardAdmin.html', {
+        'total_equipos': total_equipos,
+    })
 
 @login_required
 def dashboard_entrenador(request):
