@@ -2,33 +2,15 @@ from django import forms
 from django.contrib.auth.forms import PasswordResetForm
 from .models import Usuario, Entrenador
 
-class RegistroUsuarioForm(forms.Form):
-    # Paso 1
-    nombres = forms.CharField(max_length = 50)
-    apellidos = forms.CharField(max_length = 50)
-    num_documento = forms.CharField()
-    fecha_nacimiento = forms.DateField(widget = forms.DateInput(attrs = {'type': 'data'}))
+class BaseRegistroForm(forms.Form):
+    nombres          = forms.CharField(max_length=50)
+    apellidos        = forms.CharField(max_length=50)
+    num_documento    = forms.CharField()
+    fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    email            = forms.EmailField()
+    telefono         = forms.CharField(max_length=20)
+    password         = forms.CharField(widget=forms.PasswordInput)
 
-    # Paso 2
-    email = forms.EmailField()
-    telefono = forms.CharField(max_length = 20)
-    rol = forms.ChoiceField(choices = [
-        ('', 'Seleccione un Rol'),
-        ('ADMIN', 'Administrador'),
-        ('ENTRENADOR', 'Entrenador')
-    ])
-    password = forms.CharField(widget = forms.PasswordInput)
-    experiencia = forms.CharField(max_length = 15, required = False)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        rol = cleaned_data.get('rol')
-        experiencia = cleaned_data.get('experiencia')
-
-        if rol == 'ENTRENADOR' and not experiencia:
-            self.add_error('experiencia', 'Los años de experiencia son obligatorios para Entrenadores.')
-        return cleaned_data
-    
     def clean_num_documento(self):
         num = self.cleaned_data.get('num_documento')
         if Usuario.objects.filter(_num_documento=num).exists():
@@ -46,6 +28,12 @@ class RegistroUsuarioForm(forms.Form):
         if Usuario.objects.filter(_telefono=tel).exists():
             raise forms.ValidationError('Este teléfono ya está registrado.')
         return tel
+
+class RegistroPublicoForm(BaseRegistroForm):
+    experiencia = forms.CharField(max_length=15)
+
+class RegistroAdminForm(BaseRegistroForm):
+    pass
 
 class CustomPasswordResetForm(PasswordResetForm):
     def get_users(self, email):

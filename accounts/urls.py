@@ -8,6 +8,7 @@ urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('register/', register, name='register'),
+    path('registro/admin/',  views.register_admin, name='register_admin'),
     path('dashboard/admin/', views.dashboard_admin, name = 'dashboard_admin'),
     path('dashboard/entrenador/', views.dashboard_entrenador, name = 'dashboard_entrenador'),
     path('dashboard/jugador/', views.dashboard_jugador, name = 'dashboard_jugador'),

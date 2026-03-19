@@ -4,10 +4,19 @@ from django.shortcuts import render, redirect
 from django.db import IntegrityError
 from django.contrib.auth.views import LoginView
 from .models import Usuario, Entrenador
-from .forms import RegistroUsuarioForm, EditarPerfilForm
-from django.urls import reverse_lazy
+from .forms import BaseRegistroForm, RegistroAdminForm, RegistroPublicoForm, EditarPerfilForm
+from .services.email_service import enviar_credenciales_admin
+from django.urls import reverse, reverse_lazy
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+
+def _handle_integrity_error(form, e):
+    """Mapea errores de BD al campo correspondiente."""
+    err = str(e).lower()
+    if 'email'     in err: form.add_error('email',         'Este correo ya está registrado.')
+    elif 'document'in err: form.add_error('num_documento', 'Este documento ya está registrado.')
+    elif 'telefono'in err: form.add_error('telefono',      'Este teléfono ya está registrado.')
+    else:                  form.add_error(None,            'Error al registrar. Verifica tus datos.')
 
 class CustomLoginView(LoginView):
     template_name = 'accounts/login.html'
@@ -29,45 +38,69 @@ class CustomLoginView(LoginView):
             return reverse_lazy('dashboard_jugador')
         return reverse_lazy('login')
 def register(request):
-    form = RegistroUsuarioForm(request.POST or None)
+    form = RegistroPublicoForm(request.POST or None)
 
-    if request.method == 'POST':
-        if form.is_valid():
-            data = form.cleaned_data
-            try:
-                if data['rol'] == Usuario.Roles.ENTRENADOR:
-                    user = Entrenador()
-                    user.experiencia = data['experiencia']
-                else:  # ADMIN
-                    user = Usuario()
+    if request.method == 'POST' and form.is_valid():
+        data = form.cleaned_data
+        try:
+            user = Entrenador()
+            user.nombres          = data['nombres']
+            user.apellidos        = data['apellidos']
+            user.num_documento    = data['num_documento']
+            user.fecha_nacimiento = data['fecha_nacimiento']
+            user.email            = data['email']
+            user.telefono         = data['telefono']
+            user.rol              = Usuario.Roles.ENTRENADOR
+            user.experiencia      = data['experiencia']
+            user.set_password(data['password'])
+            user.save()
+            return redirect('login')
 
-                user.nombres          = data['nombres']
-                user.apellidos        = data['apellidos']
-                user.num_documento    = data['num_documento']
-                user.fecha_nacimiento = data['fecha_nacimiento']
-                user.email            = data['email']
-                user.telefono         = data['telefono']
-                user.rol              = data['rol']
-                user.set_password(data['password'])
-                user.save()
-
-                return redirect('login')
-
-            except ValueError as e:
-                form.add_error(None, str(e))
-
-            except IntegrityError as e:
-                err = str(e).lower()
-                if 'email' in err:
-                    form.add_error('email', 'Este correo ya está registrado.')
-                elif 'documento' in err:
-                    form.add_error('num_documento', 'Este documento ya está registrado.')
-                elif 'telefono' in err:
-                    form.add_error('telefono', 'Este teléfono ya está registrado.')
-                else:
-                    form.add_error(None, 'Error al registrar. Verifica tus datos.')
+        except IntegrityError as e:
+            _handle_integrity_error(form, e)
+        except ValueError as e:
+            form.add_error(None, str(e))
 
     return render(request, 'accounts/register.html', {'form': form})
+
+@login_required
+def register_admin(request):
+    # Doble bloqueo: decorador + verificación de rol
+    if request.user.rol != Usuario.Roles.ADMIN:
+        return redirect('login')
+
+    form = RegistroAdminForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        data = form.cleaned_data
+        try:
+            user = Usuario()
+            user.nombres          = data['nombres']
+            user.apellidos        = data['apellidos']
+            user.num_documento    = data['num_documento']
+            user.fecha_nacimiento = data['fecha_nacimiento']
+            user.email            = data['email']
+            user.telefono         = data['telefono']
+            user.rol              = Usuario.Roles.ADMIN
+            user.set_password(data['password'])
+            user.save()
+            try:
+                enviar_credenciales_admin(
+                    nombre    = f"{data['nombres']} {data['apellidos']}",
+                    email     = data['email'],
+                    password  = data['password'],  # antes del hash
+                    login_url = request.build_absolute_uri(reverse('login')),
+                )
+            except Exception:
+                pass  # el usuario se creó aunque el correo falle
+            return redirect('dashboard_admin')
+
+        except IntegrityError as e:
+            _handle_integrity_error(form, e)
+        except ValueError as e:
+            form.add_error(None, str(e))
+
+    return render(request, 'accounts/register_admin.html', {'form': form})
 
 @login_required
 def editar_perfil(request):

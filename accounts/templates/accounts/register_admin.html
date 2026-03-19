@@ -6,83 +6,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
-    <title>Regístrese | F.A.S</title>
+    <title>Crear Administrador | F.A.S</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'fas-blue': '#1a73e8',
-                        'fas-dark-blue': '#0d47a1',
-                        'fas-yellow': '#ffb300',
-                        'fas-gray-bg': '#f4f6f9',
+                        'fas-blue':     '#1a73e8',
+                        'fas-dark-blue':'#0d47a1',
+                        'fas-yellow':   '#ffb300',
+                        'fas-gray-bg':  '#f4f6f9',
                     }
                 }
             }
         }
     </script>
     <style>
-        .navbar-logo { width: 75px; height: 75px; }
-
-        .step { display: none; }
-        .step.active { display: block; animation: fadeForward .3s ease; }
-        .step.back   { display: block; animation: fadeBack .3s ease; }
-        @keyframes fadeForward {
-            from { opacity: 0; transform: translateX(28px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes fadeBack {
-            from { opacity: 0; transform: translateX(-28px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
+        .navbar-logo { width:75px; height:75px; }
+        .step { display:none; }
+        .step.active { display:block; animation: fadeForward .3s ease; }
+        .step.back   { display:block; animation: fadeBack .3s ease; }
+        @keyframes fadeForward { from{opacity:0;transform:translateX(28px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes fadeBack    { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
 
         .step-dot {
-            width: 36px; height: 36px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: .85rem;
-            transition: all .35s ease;
-            flex-shrink: 0;
+            width:36px; height:36px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-weight:700; font-size:.85rem;
+            transition:all .35s ease; flex-shrink:0;
         }
-        .step-dot.done    { background: #1a73e8; color: #fff; }
-        .step-dot.current { background: #0d47a1; color: #fff; box-shadow: 0 0 0 5px rgba(26,115,232,.22); }
-        .step-dot.pending { background: #e5e7eb; color: #9ca3af; }
-        .step-line { flex: 1; height: 3px; border-radius: 9px; transition: background .4s; }
-        .step-line.done    { background: #1a73e8; }
-        .step-line.pending { background: #e5e7eb; }
+        .step-dot.done    { background:#1a73e8; color:#fff; }
+        .step-dot.current { background:#0d47a1; color:#fff; box-shadow:0 0 0 5px rgba(26,115,232,.22); }
+        .step-dot.pending { background:#e5e7eb; color:#9ca3af; }
+        .step-line { flex:1; height:3px; border-radius:9px; transition:background .4s; }
+        .step-line.done    { background:#1a73e8; }
+        .step-line.pending { background:#e5e7eb; }
 
-        .field-error input, .field-error select {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 2px rgba(220,53,69,.2) !important;
-        }
-        .field-ok input, .field-ok select {
-            border-color: #198754 !important;
-            box-shadow: 0 0 0 2px rgba(25,135,84,.15) !important;
-        }
-        .invalid-feedback {
-            color: #dc3545; font-size: .8rem; margin-top: .25rem;
-            display: flex; align-items: center; gap: 4px;
-            animation: slideDown .2s ease;
-        }
-        @keyframes slideDown {
-            from { opacity:0; transform: translateY(-4px); }
-            to   { opacity:1; transform: translateY(0); }
-        }
+        .field-error input, .field-error select { border-color:#dc3545!important; box-shadow:0 0 0 2px rgba(220,53,69,.2)!important; }
+        .field-ok    input, .field-ok    select { border-color:#198754!important; box-shadow:0 0 0 2px rgba(25,135,84,.15)!important; }
+        .invalid-feedback { color:#dc3545; font-size:.8rem; margin-top:.25rem; display:flex; align-items:center; gap:4px; animation:slideDown .2s ease; }
+        @keyframes slideDown { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 
         #toast {
-            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-            min-width: 280px; padding: 14px 20px; border-radius: 12px;
-            font-weight: 600; font-size: .9rem;
-            display: flex; align-items: center; gap: 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.18);
-            transform: translateY(80px); opacity: 0;
-            transition: all .35s cubic-bezier(.34,1.56,.64,1);
+            position:fixed; bottom:24px; right:24px; z-index:9999;
+            min-width:280px; padding:14px 20px; border-radius:12px;
+            font-weight:600; font-size:.9rem;
+            display:flex; align-items:center; gap:10px;
+            box-shadow:0 8px 24px rgba(0,0,0,.18);
+            transform:translateY(80px); opacity:0;
+            transition:all .35s cubic-bezier(.34,1.56,.64,1);
         }
-        #toast.show    { transform: translateY(0); opacity: 1; }
-        #toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
-        #toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
-
-        #strength-bar { height: 4px; border-radius: 4px; transition: width .3s, background .3s; }
+        #toast.show    { transform:translateY(0); opacity:1; }
+        #toast.success { background:#d1fae5; color:#065f46; border-left:5px solid #10b981; }
+        #toast.error   { background:#fee2e2; color:#7f1d1d; border-left:5px solid #ef4444; }
+        #strength-bar  { height:4px; border-radius:4px; transition:width .3s,background .3s; }
     </style>
 </head>
 
@@ -92,12 +70,15 @@
     <nav class="bg-fas-blue shadow-lg">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
+                <a href="{% url 'dashboard_admin' %}" class="flex items-center space-x-2">
                     <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="navbar-logo mr-2 rounded-full shadow-md">
                     <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
                 </a>
                 <div class="hidden md:flex items-center space-x-4">
-                    <a href="{% url 'landingpage' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-yellow-400 transition duration-300 transform hover:scale-105">Regresar</a>
+                    <a href="{% url 'dashboard_admin' %}"
+                       class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-yellow-400 transition duration-300 transform hover:scale-105">
+                        Regresar
+                    </a>
                 </div>
                 <div class="md:hidden">
                     <button id="menu-button" type="button" class="text-white hover:text-gray-200 focus:outline-none">
@@ -110,7 +91,10 @@
         </div>
         <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
             <div class="px-2 pt-2 pb-3">
-                <a href="/landingpage" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">Regresar</a>
+                <a href="{% url 'dashboard_admin' %}"
+                   class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">
+                    Regresar
+                </a>
             </div>
         </div>
     </nav>
@@ -118,10 +102,10 @@
     <!-- CARD -->
     <div class="max-w-lg mx-auto mt-8 mb-12 bg-white p-8 rounded-xl shadow-2xl w-full">
 
-        <h3 class="text-3xl font-extrabold text-fas-dark-blue text-center mb-1">Regístrate en F.A.S</h3>
+        <h3 class="text-3xl font-extrabold text-fas-dark-blue text-center mb-1">Crear Administrador</h3>
         <p id="step-subtitle" class="text-center text-gray-400 text-sm mb-6">Paso 1 de 2 — Información personal</p>
 
-        <!-- INDICADOR DE PASOS -->
+        <!-- Indicador de pasos -->
         <div class="flex items-center mb-8 px-1">
             <div class="flex flex-col items-center gap-1">
                 <div id="dot-1" class="step-dot current">1</div>
@@ -134,23 +118,18 @@
             </div>
         </div>
 
-        <!-- ── AGREGADO: errores globales del servidor ── -->
         {% if form.non_field_errors %}
             <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
-                {% for error in form.non_field_errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
             </div>
         {% endif %}
 
-        <!-- ── CAMBIADO: action y csrf, quitados atributos th: ── -->
-        <form id="registerForm" method="POST" action="{% url 'register' %}" novalidate>
+        <form id="registerForm" method="POST" action="{% url 'register_admin' %}" novalidate>
             {% csrf_token %}
 
-            <!-- ══════════ PASO 1 ══════════ -->
+            <!-- ══ PASO 1 ══ -->
             <div id="step-1" class="step active space-y-4">
 
-                <!-- ── CAMBIADO: value Django, errores Django, quitado th: ── -->
                 <div class="field-group {% if form.nombres.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nombres</label>
                     <input type="text" id="nombres" name="nombres"
@@ -158,9 +137,7 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ingrese sus nombres">
                     <p class="invalid-feedback hidden" id="err-nombres"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
-                    {% for error in form.nombres.errors %}
-                        <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
-                    {% endfor %}
+                    {% for error in form.nombres.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <div class="field-group {% if form.apellidos.errors %}field-error{% endif %}">
@@ -170,9 +147,7 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ingrese sus apellidos">
                     <p class="invalid-feedback hidden" id="err-apellidos"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
-                    {% for error in form.apellidos.errors %}
-                        <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
-                    {% endfor %}
+                    {% for error in form.apellidos.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>{% endfor %}
                 </div>
 
                 <div class="field-group {% if form.num_documento.errors %}field-error{% endif %}">
@@ -182,9 +157,7 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ej: 1234567890" inputmode="numeric">
                     <p class="invalid-feedback hidden" id="err-num_documento"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
-                    {% for error in form.num_documento.errors %}
-                        <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
-                    {% endfor %}
+                    {% for error in form.num_documento.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <div class="field-group {% if form.fecha_nacimiento.errors %}field-error{% endif %}">
@@ -193,9 +166,7 @@
                         value="{{ form.fecha_nacimiento.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition">
                     <p class="invalid-feedback hidden" id="err-fecha_nacimiento"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
-                    {% for error in form.fecha_nacimiento.errors %}
-                        <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
-                    {% endfor %}
+                    {% for error in form.fecha_nacimiento.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <button type="button" id="nextBtn"
@@ -205,7 +176,7 @@
                 </button>
             </div>
 
-            <!-- ══════════ PASO 2 ══════════ -->
+            <!-- ══ PASO 2 ══ -->
             <div id="step-2" class="step space-y-4">
 
                 <div class="field-group {% if form.email.errors %}field-error{% endif %}">
@@ -215,9 +186,7 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="ejemplo@correo.com">
                     <p class="invalid-feedback hidden" id="err-email"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
-                    {% for error in form.email.errors %}
-                        <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
-                    {% endfor %}
+                    {% for error in form.email.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <div class="field-group {% if form.telefono.errors %}field-error{% endif %}">
@@ -227,34 +196,8 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ej: 3001234567">
                     <p class="invalid-feedback hidden" id="err-telefono"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
-                    {% for error in form.telefono.errors %}
-                        <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
-                    {% endfor %}
+                    {% for error in form.telefono.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
-
-                <div class="field-group {% if form.experiencia.errors %}field-error{% endif %}">
-    <label class="block text-sm font-medium text-gray-700 mb-1">
-        Años de experiencia
-    </label>
-    <input type="text" id="experiencia" name="experiencia"
-        value="{{ form.experiencia.value|default:'' }}"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
-        placeholder="Ej: 5 años">
-    <p class="invalid-feedback hidden" id="err-experiencia">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/>
-        </svg>
-        <span></span>
-    </p>
-    {% for error in form.experiencia.errors %}
-        <p class="invalid-feedback">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/>
-            </svg>
-            <span>{{ error }}</span>
-        </p>
-    {% endfor %}
-</div>
 
                 <div class="field-group {% if form.password.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
@@ -275,9 +218,7 @@
                     </div>
                     <p id="strength-label" class="text-xs mt-1 text-gray-400"></p>
                     <p class="invalid-feedback hidden" id="err-password"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
-                    {% for error in form.password.errors %}
-                        <p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>
-                    {% endfor %}
+                    {% for error in form.password.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <div class="flex gap-3 mt-2">
@@ -288,7 +229,7 @@
                     </button>
                     <button type="submit"
                         class="flex-1 bg-fas-blue text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-fas-dark-blue transition duration-300 transform hover:scale-[1.01] flex items-center justify-center gap-2">
-                        Registrarse
+                        Crear Admin
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     </button>
                 </div>
@@ -308,7 +249,6 @@
         </div>
     </footer>
 
-    <!-- TOAST -->
     <div id="toast" role="alert" aria-live="polite">
         <svg id="toast-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"></svg>
         <span id="toast-msg"></span>
@@ -318,7 +258,6 @@
     (() => {
         const $ = id => document.getElementById(id);
 
-        /* ── helpers ── */
         function showError(id, msg) {
             const el = $(`err-${id}`), inp = $(id);
             if (!el || !inp) return;
@@ -345,60 +284,53 @@
             showToast._t = setTimeout(() => t.classList.remove('show'), 4000);
         }
 
-        /* ── rules ── */
         const rules = {
-            nombres(v)            { if (!v.trim()) return 'El nombre es obligatorio.'; if (v.trim().length<2) return 'Mínimo 2 caracteres.'; if (!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.'; return null; },
-            apellidos(v)          { if (!v.trim()) return 'Los apellidos son obligatorios.'; if (v.trim().length<2) return 'Mínimo 2 caracteres.'; if (!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.'; return null; },
-            num_documento(v)      { if (!v.trim()) return 'El número de documento es obligatorio.'; if (!/^\d{6,12}$/.test(v.trim())) return 'Entre 6 y 12 dígitos numéricos.'; return null; },
-            fecha_nacimiento(v)   {
-                if (!v) return 'La fecha de nacimiento es obligatoria.';
+            nombres(v)          { if(!v.trim()) return 'El nombre es obligatorio.'; if(v.trim().length<2) return 'Mínimo 2 caracteres.'; if(!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.'; return null; },
+            apellidos(v)        { if(!v.trim()) return 'Los apellidos son obligatorios.'; if(v.trim().length<2) return 'Mínimo 2 caracteres.'; if(!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.'; return null; },
+            num_documento(v)    { if(!v.trim()) return 'El número de documento es obligatorio.'; if(!/^\d{6,12}$/.test(v.trim())) return 'Entre 6 y 12 dígitos numéricos.'; return null; },
+            fecha_nacimiento(v) {
+                if(!v) return 'La fecha de nacimiento es obligatoria.';
                 const b=new Date(v), hoy=new Date();
                 let age=hoy.getFullYear()-b.getFullYear();
-                if (hoy.getMonth()-b.getMonth()<0||(hoy.getMonth()-b.getMonth()===0&&hoy.getDate()<b.getDate())) age--;
-                if (b>hoy) return 'La fecha no puede ser futura.';
-                if (age<20) return 'Debes tener al menos 20 años.';
-                if (age>100) return 'Fecha inválida.';
+                if(hoy.getMonth()-b.getMonth()<0||(hoy.getMonth()-b.getMonth()===0&&hoy.getDate()<b.getDate())) age--;
+                if(b>hoy) return 'La fecha no puede ser futura.';
+                if(age<20) return 'Debes tener al menos 20 años.';
+                if(age>100) return 'Fecha inválida.';
                 return null;
             },
-            email(v)       { if (!v.trim()) return 'El correo es obligatorio.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido.'; return null; },
-            telefono(v)    { if (!v.trim()) return 'El teléfono es obligatorio.'; if (!/^[3][0-9]{9}$/.test(v.trim())) return 'Número colombiano válido (ej: 3001234567).'; return null; },
-            rol(v)         { if (!v) return 'Debes seleccionar un rol.'; return null; },
-            experiencia(v) { if ($('rol').value === 'ENTRENADOR' && !v.trim()) return 'La experiencia es obligatoria.'; return null; },
-            password(v)    {
-                if (!v) return 'La contraseña es obligatoria.';
-                if (v.length<8) return 'Mínimo 8 caracteres.';
-                if (!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.';
-                if (!/[0-9]/.test(v)) return 'Debe incluir un número.';
-                if (!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.';
+            email(v)    { if(!v.trim()) return 'El correo es obligatorio.'; if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido.'; return null; },
+            telefono(v) { if(!v.trim()) return 'El teléfono es obligatorio.'; if(!/^[3][0-9]{9}$/.test(v.trim())) return 'Número colombiano válido (ej: 3001234567).'; return null; },
+            password(v) {
+                if(!v) return 'La contraseña es obligatoria.';
+                if(v.length<8) return 'Mínimo 8 caracteres.';
+                if(!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.';
+                if(!/[0-9]/.test(v)) return 'Debe incluir un número.';
+                if(!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.';
                 return null;
             },
         };
 
         function validateField(id) {
-            const el=$(id); if (!el) return true;
+            const el=$(id); if(!el) return true;
             const err = rules[id]?.(el.value) ?? null;
             err ? showError(id,err) : clearError(id);
             return !err;
         }
 
-        /* ── live validation listeners ── */
-        ['nombres','apellidos','num_documento','fecha_nacimiento','email','telefono','rol','experiencia','password'].forEach(id => {
+        ['nombres','apellidos','num_documento','fecha_nacimiento','email','telefono','password'].forEach(id => {
             const el=$(id); if(!el) return;
-            el.addEventListener('blur', ()=>validateField(id));
+            el.addEventListener('blur',  ()=>validateField(id));
             el.addEventListener('input', ()=>{ if(el.closest('.field-group').classList.contains('field-error')) validateField(id); });
         });
 
-        /* ── Step navigation ── */
-        const step1 = ['nombres','apellidos','num_documento','fecha_nacimiento'];
-        const step2 = ['email', 'telefono', 'experiencia', 'password'];
+        const step1Fields = ['nombres','apellidos','num_documento','fecha_nacimiento'];
+        const step2Fields = ['email','telefono','password'];
 
         function goToStep(n, dir='forward') {
-            document.querySelectorAll('.step').forEach(s => { s.classList.remove('active','back'); s.style.display=''; });
-            const target = $(`step-${n}`);
-            target.classList.add(dir==='forward' ? 'active' : 'back');
-
+            document.querySelectorAll('.step').forEach(s=>{ s.classList.remove('active','back'); });
+            $(`step-${n}`).classList.add(dir==='forward'?'active':'back');
             const d1=$('dot-1'), d2=$('dot-2'), line=$('line-1'), l1=$('lbl-1'), l2=$('lbl-2'), sub=$('step-subtitle');
-            if (n===1) {
+            if(n===1){
                 d1.className='step-dot current'; d1.textContent='1';
                 d2.className='step-dot pending'; d2.textContent='2';
                 line.className='step-line pending mx-3';
@@ -417,42 +349,26 @@
         }
 
         $('nextBtn').addEventListener('click', ()=>{
-            if (!step1.map(validateField).every(Boolean)) { showToast('Corrige los errores antes de continuar.','error'); return; }
+            if(!step1Fields.map(validateField).every(Boolean)){ showToast('Corrige los errores antes de continuar.','error'); return; }
             goToStep(2,'forward');
         });
-
-        $('backBtn').addEventListener('click', ()=> goToStep(1,'back'));
+        $('backBtn').addEventListener('click', ()=>goToStep(1,'back'));
 
         $('registerForm').addEventListener('submit', e=>{
-            const isEntrenador = $('rol').value === 'ENTRENADOR';
-            const fields = isEntrenador ? [...step2, 'experiencia'] : step2;
-            if (!fields.map(validateField).every(Boolean)) {
+            if(!step2Fields.map(validateField).every(Boolean)){
                 e.preventDefault();
-                showToast('Corrige los errores antes de registrarte.','error');
-                return;
+                showToast('Corrige los errores antes de continuar.','error');
             }
-            showToast('Formulario enviado. Procesando...','success');
         });
 
-        /* ── AGREGADO: mostrar/ocultar experiencia ── */
-        function toggleExperiencia() {
-            const isEntrenador = $('rol').value === 'ENTRENADOR';
-            const group = $('experiencia-group');
-            group.classList.toggle('hidden', !isEntrenador);
-            group.classList.toggle('block', isEntrenador);
-            if (!isEntrenador) $('experiencia').value = '';
-        }
-        $('rol').addEventListener('change', toggleExperiencia);
+        // Abrir paso 2 si hay errores de servidor en ese paso
+        const hasStep2Errors = step2Fields.some(id=>{
+            const el=$(id);
+            return el && el.closest('.field-group')?.classList.contains('field-error');
+        });
+        if(hasStep2Errors) goToStep(2,'forward');
 
-        /* ── AGREGADO: abrir paso 2 si hay errores de servidor en ese paso ── */
-        const step2ErrorFields = ['email', 'telefono', 'experiencia', 'password'];
-        const hasStep2Errors = step2ErrorFields.some(id => {
-        const el = $(id);
-        return el && el.closest('.field-group')?.classList.contains('field-error');
-    });
-    if (hasStep2Errors) goToStep(2, 'forward');
-
-        /* ── Password strength ── */
+        // Strength bar
         $('password').addEventListener('input', function(){
             const v=this.value; let s=0;
             if(v.length>=8)s++; if(/[A-Z]/.test(v))s++; if(/[0-9]/.test(v))s++; if(/[^a-zA-Z0-9]/.test(v))s++;
@@ -461,7 +377,7 @@
             $('strength-label').textContent=v.length?lvl.t:'';
         });
 
-        /* ── Toggle password ── */
+        // Toggle password
         $('togglePassword').addEventListener('click',()=>{
             const p=$('password'), isT=p.type==='text';
             p.type=isT?'password':'text';
@@ -470,14 +386,12 @@
                 :`<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.96 9.96 0 012.293-3.95M6.17 6.17A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.973 9.973 0 01-4.293 5.568M3 3l18 18"/>`;
         });
 
-        /* ── Solo números ── */
+        // Solo números
         ['num_documento','telefono'].forEach(id=>{
             $(id).addEventListener('keypress',e=>{ if(!/[0-9]/.test(e.key)) e.preventDefault(); });
         });
 
-        /* ── Navbar mobile ── */
         $('menu-button').addEventListener('click',()=>$('mobile-menu').classList.toggle('hidden'));
-
     })();
     </script>
 </body>
