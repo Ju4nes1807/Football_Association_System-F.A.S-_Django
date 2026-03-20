@@ -69,7 +69,7 @@
                 <div class="list-group">
                     <a th:href="@{/admin/dashboard}" class="list-group-item list-group-item-action active">Inicio</a>
                     <a href="{% url 'inscripciones:lista_equipos' %}" class="list-group-item list-group-item-action">Equipos</a>
-                    <a th:href="@{/torneos/admin}" class="list-group-item list-group-item-action">Torneos</a>
+                    <a href="{% url 'torneos:admin_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a th:href="@{/canchas}" class="list-group-item list-group-item-action">Canchas</a>
                 </div>
             </div>

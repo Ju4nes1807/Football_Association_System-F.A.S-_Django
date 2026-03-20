@@ -1,0 +1,187 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Mis Torneos - Jugador</title>
+    <style>
+        @media (max-width:767.98px) { .sidebar { border-bottom: 1px solid #dee2e6; padding-bottom:1rem; margin-bottom:1rem; } }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <nav class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <div class="container-fluid">
+            <a href="{% url 'dashboard_jugador' %}" class="d-flex align-items-center text-decoration-none">
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" style="width:75px;height:75px;" class="me-2">
+                <span class="navbar-brand text-light fs-2 m-0">F.A.S</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link text-light btn btn-link">Cerrar sesión</button>
+                        </form>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'editar_perfil' %}" class="nav-link text-light">Modificar Perfil</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid flex-grow-1">
+        <div class="row">
+            <aside class="col-md-3 col-lg-2 sidebar p-3">
+                <h5 class="text-primary mb-3">Jugador</h5>
+                <div class="list-group">
+                    <a href="{% url 'dashboard_jugador' %}" class="list-group-item list-group-item-action">Inicio</a>
+                    <a href="{% url 'torneos:jugador_mis_torneos' %}" class="list-group-item list-group-item-action active">Mis Torneos</a>
+                    <a href="{% url 'editar_perfil' %}" class="list-group-item list-group-item-action">Mi Perfil</a>
+                </div>
+            </aside>
+
+            <main class="col-md-9 col-lg-10 p-4">
+                <h3><i class="fas fa-trophy text-warning"></i> Mis Torneos</h3>
+                <p class="text-muted">Aquí puedes ver todos los torneos en los que has participado y tus estadísticas.</p>
+
+                <!-- Estadísticas globales -->
+                {% if totales.total_goles is not None %}
+                <div class="row mb-4">
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card text-center border-warning">
+                            <div class="card-body">
+                                <i class="fas fa-futbol fa-2x text-warning mb-1"></i>
+                                <h3 class="text-warning">{{ totales.total_goles|default:0 }}</h3>
+                                <small class="text-muted">Total Goles</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card text-center border-success">
+                            <div class="card-body">
+                                <i class="fas fa-hands-helping fa-2x text-success mb-1"></i>
+                                <h3 class="text-success">{{ totales.total_asistencias|default:0 }}</h3>
+                                <small class="text-muted">Asistencias</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card text-center border-danger">
+                            <div class="card-body">
+                                <i class="fas fa-square fa-2x text-danger mb-1"></i>
+                                <h3 class="text-danger">{{ totales.total_rojas|default:0 }}</h3>
+                                <small class="text-muted">Tarjetas Rojas</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card text-center border-primary">
+                            <div class="card-body">
+                                <i class="fas fa-clock fa-2x text-primary mb-1"></i>
+                                <h3 class="text-primary">{{ totales.total_minutos|default:0 }}</h3>
+                                <small class="text-muted">Minutos Totales</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Por torneo -->
+                {% if torneos_data %}
+                    {% for dato in torneos_data %}
+                    <div class="card shadow mb-4">
+                        <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-trophy"></i> {{ dato.torneo.nombre }}</h5>
+                            {% if dato.torneo.estado == 'PROXIMO' %}<span class="badge bg-info">Próximo</span>
+                            {% elif dato.torneo.estado == 'EN_CURSO' %}<span class="badge bg-success">En curso</span>
+                            {% elif dato.torneo.estado == 'FINALIZADO' %}<span class="badge bg-secondary">Finalizado</span>
+                            {% else %}<span class="badge bg-danger">Cancelado</span>{% endif %}
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p><strong>Categoría:</strong> {{ dato.torneo.get_categoria_display }}</p>
+                                    <p><strong>Fechas:</strong> {{ dato.torneo.fecha_inicio|date:"d/m/Y" }} — {{ dato.torneo.fecha_fin|date:"d/m/Y" }}</p>
+                                    <p><strong>Ubicación:</strong> {{ dato.torneo.ubicacion }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Partidos jugados:</strong> {{ dato.partidos_jugados }}</p>
+                                    <p><strong>Partidos restantes:</strong>
+                                        <span class="badge bg-warning text-dark fs-6">{{ dato.partidos_restantes }}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Stats del jugador en este torneo -->
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-chart-bar"></i> Mis Estadísticas en este Torneo</h6>
+                            <div class="row text-center">
+                                <div class="col-4 col-md-2 mb-2">
+                                    <div class="bg-light rounded p-2">
+                                        <div class="fw-bold fs-4 text-warning">{{ dato.goles }}</div>
+                                        <small class="text-muted">Goles</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-2 mb-2">
+                                    <div class="bg-light rounded p-2">
+                                        <div class="fw-bold fs-4 text-success">{{ dato.asistencias }}</div>
+                                        <small class="text-muted">Asistencias</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-2 mb-2">
+                                    <div class="bg-light rounded p-2">
+                                        <div class="fw-bold fs-4 text-warning">{{ dato.amarillas }}</div>
+                                        <small class="text-muted">Amarillas</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-2 mb-2">
+                                    <div class="bg-light rounded p-2">
+                                        <div class="fw-bold fs-4 text-danger">{{ dato.rojas }}</div>
+                                        <small class="text-muted">Rojas</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-2 mb-2">
+                                    <div class="bg-light rounded p-2">
+                                        <div class="fw-bold fs-4 text-primary">{{ dato.minutos }}</div>
+                                        <small class="text-muted">Minutos</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-2 mb-2">
+                                    <div class="bg-light rounded p-2">
+                                        <div class="fw-bold fs-4 text-info">{{ dato.partidos_jugados }}</div>
+                                        <small class="text-muted">Partidos</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-trophy fa-5x text-muted mb-3 d-block"></i>
+                        <h5 class="text-muted">No tienes estadísticas registradas en ningún torneo.</h5>
+                        <p class="text-muted">Cuando el administrador registre tus estadísticas en un partido, aparecerán aquí.</p>
+                    </div>
+                {% endif %}
+            </main>
+        </div>
+    </div>
+
+    <footer class="bg-warning py-3 shadow mt-auto">
+        <div class="container d-flex align-items-center">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" style="width:75px;height:75px;" class="me-2">
+            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
