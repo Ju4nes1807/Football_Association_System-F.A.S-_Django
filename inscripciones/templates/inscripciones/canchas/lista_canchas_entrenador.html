@@ -166,6 +166,45 @@
                     </div>
                     {% endfor %}
                 </div>
+                <!-- PAGINACIÓN -->
+{% if canchas.has_other_pages %}
+<div class="d-flex justify-content-center mt-4">
+    <nav>
+        <ul class="pagination">
+            {% if canchas.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ canchas.previous_page_number }}&nombre={{ nombre }}&localidad={{ localidad }}&disciplina={{ disciplina }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in canchas.paginator.page_range %}
+                {% if canchas.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > canchas.number|add:'-3' and num < canchas.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&nombre={{ nombre }}&localidad={{ localidad }}&disciplina={{ disciplina }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if canchas.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ canchas.next_page_number }}&nombre={{ nombre }}&localidad={{ localidad }}&disciplina={{ disciplina }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+<p class="text-center text-muted small">
+    Página {{ canchas.number }} de {{ canchas.paginator.num_pages }} — {{ canchas.paginator.count }} cancha{{ canchas.paginator.count|pluralize }} en total
+</p>
+{% endif %}
                 {% else %}
                 <div class="alert alert-info text-center">
                     <i class="fas fa-info-circle me-2"></i>

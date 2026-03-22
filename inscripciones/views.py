@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 import requests
+from django.core.paginator import Paginator
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from django.db import IntegrityError
@@ -438,6 +439,10 @@ def lista_equipos(request):
         equipos = equipos.filter(_localidad__icontains=localidad)
     if estado:
         equipos = equipos.filter(_estado=estado)
+    
+    paginator = Paginator(equipos, 12)
+    page      = request.GET.get('page')
+    equipos   = paginator.get_page(page)
 
     return render(request, 'inscripciones/lista_equipos.html', {
         'equipos':   equipos,
@@ -445,7 +450,7 @@ def lista_equipos(request):
         'localidad': localidad,
         'estado':    estado,
         'estados':   Equipo.Estado.choices,
-        'total':     equipos.count(),
+        'total': paginator.count,
     })
 
 @login_required
@@ -848,10 +853,14 @@ def lista_canchas(request):
         canchas = canchas.filter(_tipo_disciplina=disciplina)
     if disponibilidad:
         canchas = canchas.filter(_disponibilidad=disponibilidad)
+    
+    paginator = Paginator(canchas, 15)
+    page      = request.GET.get('page')
+    canchas   = paginator.get_page(page)
 
     return render(request, 'inscripciones/canchas/lista_canchas.html', {
         'canchas':        canchas,
-        'total':          canchas.count(),
+        'total': paginator.count,
         'nombre':         nombre,
         'localidad':      localidad,
         'disciplina':     disciplina,
@@ -1146,11 +1155,15 @@ def lista_canchas_entrenador(request):
     if disciplina:
         canchas = canchas.filter(_tipo_disciplina=disciplina)
 
+    paginator = Paginator(canchas, 12)  # ← mayúscula
+    page      = request.GET.get('page')
+    canchas   = paginator.get_page(page)
+
     return render(request, 'inscripciones/canchas/lista_canchas_entrenador.html', {
-        'canchas':    canchas,
-        'total':      canchas.count(),
-        'nombre':     nombre,
-        'localidad':  localidad,
-        'disciplina': disciplina,
+        'canchas':     canchas,
+        'total':       paginator.count,  # ← desde paginator, no canchas.count()
+        'nombre':      nombre,
+        'localidad':   localidad,
+        'disciplina':  disciplina,
         'disciplinas': Cancha.TipoDisciplina.choices,
     })
