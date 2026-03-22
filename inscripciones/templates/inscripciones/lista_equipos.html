@@ -51,7 +51,7 @@
                 <div class="list-group">
                     <a href="{% url 'dashboard_admin' %}" class="list-group-item list-group-item-action">Inicio</a>
                     <a href="{% url 'inscripciones:lista_equipos' %}" class="list-group-item list-group-item-action active">Equipos</a>
-                    <a href="#" class="list-group-item list-group-item-action">Torneos</a>
+                    <a href="{% url 'torneos:admin_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas' %}" class="list-group-item list-group-item-action">Canchas</a>
                 </div>
             </div>

@@ -74,7 +74,7 @@
                     <a href="{% url 'inscripciones:mi_equipo' %}"
                         class="list-group-item list-group-item-action">Equipo</a>
                     <a th:href="@{/lider/Entrenamientos}" class="list-group-item list-group-item-action">Entrenamientos</a>
-                    <a th:href="@{/torneos/lider}" class="list-group-item list-group-item-action">Torneos</a>
+                    <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
                     <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action">Jugadores</a>
                 </div>

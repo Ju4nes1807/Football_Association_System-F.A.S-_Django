@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Torneos - Admin</title>
+    <style>
+        @media (max-width: 767.98px) {
+            .sidebar { border-bottom: 1px solid #dee2e6; padding-bottom: 1rem; margin-bottom: 1rem; }
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <nav class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <div class="container-fluid">
+            <a href="{% url 'dashboard_admin' %}" class="d-flex align-items-center text-decoration-none">
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px;">
+                <span class="navbar-brand text-light fs-2 shadow m-0">F.A.S</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesión</button>
+                        </form>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid flex-grow-1">
+        <div class="row">
+            <div class="col-12 col-md-3 col-lg-2 sidebar p-3">
+                <h5 class="mb-3 text-primary">Torneos</h5>
+                <div class="list-group">
+                    <a href="{% url 'dashboard_admin' %}" class="list-group-item list-group-item-action">Inicio</a>
+                    <a href="{% url 'torneos:admin_lista_torneos' %}" class="list-group-item list-group-item-action active">Torneos</a>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-9 col-lg-10 p-4">
+                {% if messages %}
+                    {% for msg in messages %}
+                        <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+                            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <h3 class="mt-3"><i class="fas fa-trophy"></i> Gestión de Torneos</h3>
+
+                <!-- Filtros -->
+                <form class="d-flex flex-wrap gap-2 mb-3" method="GET">
+                    <input type="text" name="nombre" class="form-control" style="max-width:220px;"
+                           placeholder="Buscar torneo..." value="{{ request_nombre }}">
+                    <select name="estado" class="form-select" style="max-width:180px;">
+                        <option value="">Todos los estados</option>
+                        {% for valor, etiqueta in estados %}
+                            <option value="{{ valor }}" {% if request_estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i></button>
+                    <a href="{% url 'torneos:admin_lista_torneos' %}" class="btn btn-outline-warning"><i class="fas fa-sync-alt"></i></a>
+                    <a href="{% url 'torneos:admin_crear_torneo' %}" class="btn btn-warning ms-auto">
+                        <i class="fas fa-plus"></i> Crear Torneo
+                    </a>
+                </form>
+
+                <!-- Tabla -->
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
+                                <th>Estado</th>
+                                <th>Inscritos</th>
+                                <th>Cupos</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for torneo in torneos %}
+                            <tr>
+                                <td>{{ torneo.nombre }}</td>
+                                <td>{{ torneo.get_categoria_display }}</td>
+                                <td>{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
+                                <td>{{ torneo.fecha_fin|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if torneo.estado == 'PROXIMO' %}
+                                        <span class="badge bg-info">Próximo</span>
+                                    {% elif torneo.estado == 'EN_CURSO' %}
+                                        <span class="badge bg-success">En curso</span>
+                                    {% elif torneo.estado == 'FINALIZADO' %}
+                                        <span class="badge bg-secondary">Finalizado</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Cancelado</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'torneos:admin_detalle_torneo' torneo.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-users"></i> {{ torneo.inscripciones.filter.count }}
+                                    </a>
+                                </td>
+                                <td>{{ torneo.cupos_disponibles }} / {{ torneo.cupo_maximo }}</td>
+                                <td>
+                                    <a href="{% url 'torneos:admin_detalle_torneo' torneo.id %}" class="btn btn-sm btn-info" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'torneos:admin_editar_torneo' torneo.id %}" class="btn btn-sm btn-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{% url 'torneos:admin_eliminar_torneo' torneo.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('¿Eliminar este torneo?')" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="8" class="text-center text-muted py-4">No hay torneos registrados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-warning py-3 shadow mt-auto">
+        <div class="container d-flex align-items-center">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" style="width:75px;height:75px;" class="me-2">
+            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
