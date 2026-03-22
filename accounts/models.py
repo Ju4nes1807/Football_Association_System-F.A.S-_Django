@@ -118,6 +118,7 @@ class Jugador(Usuario):
     _dorsal = models.PositiveIntegerField(db_column='dorsal')
     _pie_dominante = models.CharField(max_length=20, db_column='pie_dominante')
     _posicion = models.CharField(max_length=50, db_column='posicion')
+    equipo = models.ForeignKey('inscripciones.Equipo', on_delete = models.CASCADE, null = True, blank = True, related_name = 'jugadores')
 
     # ── Dorsal ──
     @property

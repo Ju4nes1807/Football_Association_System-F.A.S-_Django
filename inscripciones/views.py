@@ -6,9 +6,16 @@ import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from django.db import IntegrityError
-from .models import Equipo
-from .forms import RegistroEquipoForm, EditarEquipoForm
-
+from .models import Equipo, Cancha
+from .forms import RegistroEquipoForm, EditarEquipoForm, RegistroJugadorForm, CargaMasivaJugadoresForm, EditarJugadorEntrenadorForm, EditarPerfilJugadorForm, CanchaForm, CargaMasivaCanchasForm
+import csv
+import io
+from datetime import date, datetime
+import openpyxl
+from django.contrib.auth.hashers import make_password
+from accounts.models import Usuario, Jugador
+from django.contrib.auth import update_session_auth_hash
+from .utils import validar_edad_categoria, _enviar_credenciales_jugador
 
 def _get_equipo_entrenador(user):
     """Retorna el equipo del entrenador o None."""
@@ -465,3 +472,685 @@ def aprobar_equipo(request, equipo_id):
 
     equipo.save()
     return redirect('inscripciones:lista_equipos')
+
+@login_required
+def lista_jugadores(request):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+    
+    equipo = _get_equipo_entrenador(request.user)
+    if not equipo:
+        messages.error(request, 'No tienes un equipo registrado.')
+        return redirect ('inscripciones:mi_equipo')
+    
+    jugadores = Jugador.objects.filter(equipo = equipo).order_by('_dorsal')
+    return render(request, 'inscripciones/lista_jugadores.html', {'equipo': equipo, 'jugadores': jugadores})
+
+@login_required
+def registrar_jugador(request):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    equipo = _get_equipo_entrenador(request.user)
+    if not equipo:
+        messages.error(request, 'Debes registrar un equipo primero.')
+        return redirect('inscripciones:mi_equipo')
+
+    if equipo.estado != 'APROBADO':
+        messages.error(request, 'Tu equipo debe estar aprobado para registrar jugadores.')
+        return redirect('inscripciones:mi_equipo')
+
+    form = RegistroJugadorForm(request.POST or None, equipo=equipo)
+
+    if request.method == 'POST' and form.is_valid():
+        data = form.cleaned_data
+        try:
+            jugador = Jugador()
+            jugador.nombres          = data['nombres']
+            jugador.apellidos        = data['apellidos']
+            jugador.num_documento    = data['num_documento']
+            jugador.fecha_nacimiento = data['fecha_nacimiento']
+            jugador.email            = data['email']
+            jugador.telefono         = data['telefono']
+            jugador._rol             = Usuario.Roles.JUGADOR
+            jugador.dorsal           = data['dorsal']
+            jugador.pie_dominante    = data['pie_dominante']
+            jugador.posicion         = data['posicion']
+            jugador.equipo           = equipo
+            jugador.set_password(data['password'])
+            jugador.save()
+
+            _enviar_credenciales_jugador(jugador, data['password'], request)
+
+            messages.success(request, f'Jugador {data["nombres"]} registrado correctamente.')
+            return redirect('inscripciones:lista_jugadores')
+
+        except IntegrityError as e:
+            # Mapear la constraint violada al campo correspondiente
+            error = str(e).lower()
+            if 'email' in error or '_email' in error:
+                form.add_error('email', 'Este correo ya está registrado.')
+            elif 'num_documento' in error or '_num_documento' in error:
+                form.add_error('num_documento', 'Este documento ya está registrado.')
+            elif 'telefono' in error or '_telefono' in error:
+                form.add_error('telefono', 'Este teléfono ya está registrado.')
+            elif 'dorsal' in error or '_dorsal' in error:
+                form.add_error('dorsal', f'El dorsal ya está en uso en este equipo.')
+            else:
+                form.add_error(None, f'Error de integridad en base de datos: {e}')
+
+        except ValueError as e:
+            form.add_error(None, str(e))
+
+    return render(request, 'inscripciones/registrar_jugador.html', {
+        'form': form,
+        'equipo': equipo,
+    })
+
+@login_required
+def eliminar_jugador(request, jugador_id):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    jugador = get_object_or_404(Jugador, id=jugador_id)
+    equipo  = _get_equipo_entrenador(request.user)
+
+    if jugador.equipo != equipo:
+        messages.error(request, 'No tienes permiso para eliminar este jugador.')
+        return redirect('inscripciones:lista_jugadores')
+
+    if request.method == 'POST':
+        nombre = f'{jugador.nombres} {jugador.apellidos}'
+        jugador.delete()
+        messages.success(request, f'Jugador "{nombre}" eliminado.')
+        return redirect('inscripciones:lista_jugadores')
+
+    return render(request, 'inscripciones/confirmar_eliminar_jugador.html', {
+        'jugador': jugador
+    })
+
+@login_required
+def carga_masiva_jugadores(request):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    equipo = _get_equipo_entrenador(request.user)
+    if not equipo:
+        messages.error(request, 'Debes registrar un equipo primero.')
+        return redirect('inscripciones:mi_equipo')
+
+    if equipo.estado != 'APROBADO':
+        messages.error(request, 'Tu equipo debe estar aprobado para registrar jugadores.')
+        return redirect('inscripciones:mi_equipo')
+
+    form = CargaMasivaJugadoresForm(request.POST or None, request.FILES or None)
+    errores  = []
+    exitosos = 0
+
+    if request.method == 'POST' and form.is_valid():
+        archivo = form.cleaned_data['archivo']
+        nombre  = archivo.name.lower()
+
+        try:
+            if nombre.endswith('.xlsx'):
+                filas = _leer_excel(archivo)
+            else:
+                filas = _leer_csv(archivo)
+
+            for i, fila in enumerate(filas, start=2):
+                resultado = _procesar_fila_jugador(fila, equipo, i, request)
+                if resultado['ok']:
+                    exitosos += 1
+                else:
+                    errores.append(resultado['error'])
+
+            if exitosos:
+                messages.success(request, f'{exitosos} jugador(es) registrado(s) correctamente.')
+            if errores:
+                messages.error(request, f'{len(errores)} fila(s) con errores.')
+
+        except Exception as e:
+            messages.error(request, f'Error procesando el archivo: {str(e)}')
+
+    return render(request, 'inscripciones/carga_masiva_jugadores.html', {
+        'form':    form,
+        'errores': errores,
+        'equipo':  equipo,
+    })
+
+def _leer_excel(archivo):
+    wb   = openpyxl.load_workbook(archivo)
+    ws   = wb.active
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        return []
+    headers = [str(h).strip().lower() if h else '' for h in rows[0]]
+    filas   = []
+    for row in rows[1:]:
+        if any(cell is not None for cell in row):
+            filas.append(dict(zip(headers, row)))
+    return filas
+
+
+def _leer_csv(archivo):
+    content = archivo.read().decode('utf-8-sig')
+    reader  = csv.DictReader(io.StringIO(content))
+    return [
+        {k.strip().lower(): v for k, v in row.items()}
+        for row in reader
+    ]
+
+
+def _procesar_fila_jugador(fila, equipo, num_fila, request):
+    try:
+        # Mapeo flexible de columnas
+        def get(keys):
+            for k in keys:
+                if k in fila and fila[k] not in (None, ''):
+                    return str(fila[k]).strip()
+            return ''
+
+        nombres          = get(['nombres', 'nombre'])
+        apellidos        = get(['apellidos', 'apellido'])
+        num_documento    = get(['num_documento', 'documento', 'cedula'])
+        fecha_str        = get(['fecha_nacimiento', 'fecha nacimiento', 'nacimiento'])
+        email            = get(['email', 'correo'])
+        telefono         = get(['telefono', 'teléfono', 'celular'])
+        dorsal_str       = get(['dorsal', 'numero', 'número'])
+        pie_dominante    = get(['pie_dominante', 'pie dominante', 'pie'])
+        posicion         = get(['posicion', 'posición'])
+        password         = get(['password', 'contraseña', 'clave']) or 'Fas2024*'
+
+        # Validaciones básicas
+        campos_requeridos = {
+            'nombres': nombres, 'apellidos': apellidos,
+            'num_documento': num_documento, 'fecha_nacimiento': fecha_str,
+            'email': email, 'telefono': telefono,
+            'dorsal': dorsal_str, 'pie_dominante': pie_dominante,
+            'posicion': posicion,
+        }
+        faltantes = [k for k, v in campos_requeridos.items() if not v]
+        if faltantes:
+            return {'ok': False, 'error': f'Fila {num_fila}: Campos vacíos: {", ".join(faltantes)}'}
+
+        # Parsear fecha
+        fecha_val = fila.get('fecha_nacimiento') or fila.get('fecha nacimiento') or fila.get('nacimiento')
+
+        if isinstance(fecha_val, (datetime, date)):
+            fecha_nacimiento = fecha_val.date() if isinstance(fecha_val, datetime) else fecha_val
+        elif isinstance(fecha_val, str):
+            fecha_str = fecha_val.strip()
+            for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y'):
+                try:
+                    fecha_nacimiento = datetime.strptime(fecha_str, fmt).date()
+                    break
+                except ValueError:
+                    continue
+            else:
+                return {'ok': False, 'error': f'Fila {num_fila}: Fecha inválida "{fecha_str}"'}
+        else:
+            return {'ok': False, 'error': f'Fila {num_fila}: Fecha inválida o vacía'}
+
+        # Validar edad vs categoría
+        valido, msg = validar_edad_categoria(fecha_nacimiento, equipo.categoria)
+        if not valido:
+            return {'ok': False, 'error': f'Fila {num_fila}: {msg}'}
+
+        # Validar duplicados
+        if Usuario.objects.filter(_email=email).exists():
+            return {'ok': False, 'error': f'Fila {num_fila}: Correo "{email}" ya registrado'}
+        if Usuario.objects.filter(_num_documento=num_documento).exists():
+            return {'ok': False, 'error': f'Fila {num_fila}: Documento "{num_documento}" ya registrado'}
+        if Usuario.objects.filter(_telefono=telefono).exists():
+            return {'ok': False, 'error': f'Fila {num_fila}: Teléfono "{telefono}" ya registrado'}
+
+        dorsal = int(dorsal_str)
+        if Jugador.objects.filter(equipo=equipo, _dorsal=dorsal).exists():
+            return {'ok': False, 'error': f'Fila {num_fila}: Dorsal {dorsal} ya en uso'}
+
+        # Crear jugador
+        jugador = Jugador()
+        jugador.nombres          = nombres
+        jugador.apellidos        = apellidos
+        jugador.num_documento    = num_documento
+        jugador.fecha_nacimiento = fecha_nacimiento
+        jugador.email            = email
+        jugador.telefono         = telefono
+        jugador._rol             = Usuario.Roles.JUGADOR
+        jugador.dorsal           = dorsal
+        jugador.pie_dominante    = pie_dominante.lower()
+        jugador.posicion         = posicion.lower()
+        jugador.equipo           = equipo
+        jugador.set_password(password)
+        jugador.save()
+
+        _enviar_credenciales_jugador(jugador, password, request)
+
+        return {'ok': True}
+
+    except Exception as e:
+        return {'ok': False, 'error': f'Fila {num_fila}: {str(e)}'}
+
+@login_required
+def editar_jugador(request, jugador_id):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    jugador = get_object_or_404(Jugador, id=jugador_id)
+    equipo  = _get_equipo_entrenador(request.user)
+
+    if jugador.equipo != equipo:
+        messages.error(request, 'No tienes permiso para editar este jugador.')
+        return redirect('inscripciones:lista_jugadores')
+
+    form = EditarJugadorEntrenadorForm(
+        request.POST or None,
+        jugador_pk=jugador.id,
+        equipo=equipo,
+        initial={
+            'dorsal':        jugador.dorsal,
+            'pie_dominante': jugador.pie_dominante,
+            'posicion':      jugador.posicion,
+        }
+    )
+
+    if request.method == 'POST':
+        if form.is_valid():
+            data = form.cleaned_data
+            try:
+                jugador.dorsal        = data['dorsal']
+                jugador.pie_dominante = data['pie_dominante']
+                jugador.posicion      = data['posicion']
+                jugador.save()
+                messages.success(request, 'Jugador actualizado correctamente.')
+                return redirect('inscripciones:lista_jugadores')
+            except ValueError as e:
+                form.add_error(None, str(e))
+
+    return render(request, 'inscripciones/editar_jugador.html', {
+        'form':    form,
+        'jugador': jugador,
+        'equipo':  equipo,
+    })
+
+@login_required
+def editar_perfil_jugador(request):
+    if request.user.rol != 'JUGADOR':
+        return redirect('dashboard_entrenador')
+
+    user = request.user
+    form = EditarPerfilJugadorForm(
+        request.POST or None,
+        jugador_pk=user.id,
+        initial={
+            'nombres':       user.nombres,
+            'apellidos':     user.apellidos,
+            'num_documento': user.num_documento,
+            'email':         user.email,
+            'telefono':      user.telefono,
+        }
+    )
+
+    if request.method == 'POST':
+        if form.is_valid():
+            data = form.cleaned_data
+            try:
+                user.nombres       = data['nombres']
+                user.apellidos     = data['apellidos']
+                user.num_documento = data['num_documento']
+                user.email         = data['email']
+                user.telefono      = data['telefono']
+
+                password_actual = data.get('password_actual')
+                password_nueva  = data.get('password_nueva')
+                if password_actual and password_nueva:
+                    if user.check_password(password_actual):
+                        user.set_password(password_nueva)
+                        update_session_auth_hash(request, user)
+                        messages.success(request, 'Contraseña actualizada.')
+                    else:
+                        form.add_error('password_actual', 'Contraseña actual incorrecta.')
+                        return render(request, 'accounts/roles/editar_perfil_jugador.html', {'form': form})
+
+                user.save()
+                messages.success(request, 'Perfil actualizado correctamente.')
+                return redirect('editar_jugador_perfil')
+
+            except ValueError as e:
+                form.add_error(None, str(e))
+            except IntegrityError as e:
+                err = str(e).lower()
+                if 'email' in err:
+                    form.add_error('email', 'Este correo ya está registrado.')
+                elif 'documento' in err:
+                    form.add_error('num_documento', 'Este documento ya está registrado.')
+                elif 'telefono' in err:
+                    form.add_error('telefono', 'Este teléfono ya está registrado.')
+
+    return render(request, 'accounts/roles/editar_perfil_jugador.html', {'form': form})
+
+@login_required
+def lista_canchas(request):
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    nombre       = request.GET.get('nombre', '').strip()
+    localidad    = request.GET.get('localidad', '').strip()
+    disciplina   = request.GET.get('disciplina', '').strip()
+    disponibilidad = request.GET.get('disponibilidad', '').strip()
+
+    canchas = Cancha.objects.all().order_by('_nombre_escenario')
+    if nombre:
+        canchas = canchas.filter(_nombre_escenario__icontains=nombre)
+    if localidad:
+        canchas = canchas.filter(_localidad__icontains=localidad)
+    if disciplina:
+        canchas = canchas.filter(_tipo_disciplina=disciplina)
+    if disponibilidad:
+        canchas = canchas.filter(_disponibilidad=disponibilidad)
+
+    return render(request, 'inscripciones/canchas/lista_canchas.html', {
+        'canchas':        canchas,
+        'total':          canchas.count(),
+        'nombre':         nombre,
+        'localidad':      localidad,
+        'disciplina':     disciplina,
+        'disponibilidad': disponibilidad,
+        'disciplinas':    Cancha.TipoDisciplina.choices,
+        'disponibilidades': Cancha.Disponibilidad.choices,
+    })
+
+
+# ── Crear cancha ──
+@login_required
+def crear_cancha(request):
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    form = CanchaForm(request.POST or None)
+
+    if request.method == 'POST':
+        if form.is_valid():
+            data = form.cleaned_data
+            try:
+                cancha = Cancha()
+                cancha.codigo_idrd            = data.get('codigo_idrd')
+                cancha.nombre_escenario       = data['nombre_escenario']
+                cancha.localidad              = data['localidad']
+                cancha.barrio                 = data['barrio']
+                cancha.direccion_exacta       = data['direccion_exacta']
+                cancha.codigo_rupi            = data.get('codigo_rupi')
+                cancha.tipo_disciplina        = data['tipo_disciplina']
+                cancha.tipo_superficie        = data['tipo_superficie']
+                cancha.medidas_area           = data['medidas_area']
+                cancha.estado_conservacion    = data['estado_conservacion']
+                cancha.tiene_iluminacion      = data.get('tiene_iluminacion', False)
+                cancha.tiene_cerramiento      = data.get('tiene_cerramiento', False)
+                cancha.capacidad_espectadores = data['capacidad_espectadores']
+                cancha.observaciones_tecnicas = data.get('observaciones_tecnicas')
+                cancha.save()
+                messages.success(request, f'Cancha "{cancha.nombre_escenario}" registrada correctamente.')
+                return redirect('inscripciones:lista_canchas')
+            except ValueError as e:
+                form.add_error(None, str(e))
+
+    return render(request, 'inscripciones/canchas/form_cancha.html', {
+        'form':   form,
+        'titulo': 'Registrar Cancha',
+        'accion': 'Registrar',
+    })
+
+
+# ── Editar cancha ──
+@login_required
+def editar_cancha(request, cancha_id):
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    cancha = get_object_or_404(Cancha, id=cancha_id)
+    form   = CanchaForm(
+        request.POST or None,
+        initial={
+            'codigo_idrd':            cancha.codigo_idrd,
+            'nombre_escenario':       cancha.nombre_escenario,
+            'localidad':              cancha.localidad,
+            'barrio':                 cancha.barrio,
+            'direccion_exacta':       cancha.direccion_exacta,
+            'codigo_rupi':            cancha.codigo_rupi,
+            'tipo_disciplina':        cancha.tipo_disciplina,
+            'tipo_superficie':        cancha.tipo_superficie,
+            'medidas_area':           cancha.medidas_area,
+            'estado_conservacion':    cancha.estado_conservacion,
+            'tiene_iluminacion':      cancha.tiene_iluminacion,
+            'tiene_cerramiento':      cancha.tiene_cerramiento,
+            'capacidad_espectadores': cancha.capacidad_espectadores,
+            'observaciones_tecnicas': cancha.observaciones_tecnicas,
+        }
+    )
+
+    if request.method == 'POST':
+        if form.is_valid():
+            data = form.cleaned_data
+            try:
+                cancha.codigo_idrd            = data.get('codigo_idrd')
+                cancha.nombre_escenario       = data['nombre_escenario']
+                cancha.localidad              = data['localidad']
+                cancha.barrio                 = data['barrio']
+                cancha.direccion_exacta       = data['direccion_exacta']
+                cancha.codigo_rupi            = data.get('codigo_rupi')
+                cancha.tipo_disciplina        = data['tipo_disciplina']
+                cancha.tipo_superficie        = data['tipo_superficie']
+                cancha.medidas_area           = data['medidas_area']
+                cancha.estado_conservacion    = data['estado_conservacion']
+                cancha.tiene_iluminacion      = data.get('tiene_iluminacion', False)
+                cancha.tiene_cerramiento      = data.get('tiene_cerramiento', False)
+                cancha.capacidad_espectadores = data['capacidad_espectadores']
+                cancha.observaciones_tecnicas = data.get('observaciones_tecnicas')
+                cancha.save()
+                messages.success(request, 'Cancha actualizada correctamente.')
+                return redirect('inscripciones:lista_canchas')
+            except ValueError as e:
+                form.add_error(None, str(e))
+
+    return render(request, 'inscripciones/canchas/form_cancha.html', {
+        'form':   form,
+        'cancha': cancha,
+        'titulo': 'Editar Cancha',
+        'accion': 'Guardar cambios',
+    })
+
+
+# ── Eliminar cancha ──
+@login_required
+def eliminar_cancha(request, cancha_id):
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    cancha = get_object_or_404(Cancha, id=cancha_id)
+
+    if request.method == 'POST':
+        nombre = cancha.nombre_escenario
+        cancha.delete()
+        messages.success(request, f'Cancha "{nombre}" eliminada.')
+        return redirect('inscripciones:lista_canchas')
+
+    return render(request, 'inscripciones/canchas/confirmar_eliminar_cancha.html', {
+        'cancha': cancha
+    })
+
+
+# ── Cambiar disponibilidad ──
+@login_required
+def cambiar_disponibilidad(request, cancha_id):
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    cancha = get_object_or_404(Cancha, id=cancha_id)
+
+    if request.method == 'POST':
+        nueva = request.POST.get('disponibilidad')
+        try:
+            cancha.disponibilidad = nueva
+            cancha.save()
+            messages.success(request, f'Disponibilidad actualizada a "{cancha.disponibilidad_display}".')
+        except ValueError as e:
+            messages.error(request, str(e))
+
+    return redirect('inscripciones:lista_canchas')
+
+
+# ── Carga masiva ──
+@login_required
+def carga_masiva_canchas(request):
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    form     = CargaMasivaCanchasForm(request.POST or None, request.FILES or None)
+    errores  = []
+    exitosos = 0
+
+    if request.method == 'POST' and form.is_valid():
+        archivo = form.cleaned_data['archivo']
+        nombre  = archivo.name.lower()
+        try:
+            if nombre.endswith('.xlsx'):
+                filas = _leer_excel(archivo)
+            else:
+                filas = _leer_csv(archivo)
+
+            for i, fila in enumerate(filas, start=2):
+                resultado = _procesar_fila_cancha(fila, i)
+                if resultado['ok']:
+                    exitosos += 1
+                else:
+                    errores.append(resultado['error'])
+
+            if exitosos:
+                messages.success(request, f'{exitosos} cancha(s) registrada(s) correctamente.')
+            if errores:
+                messages.error(request, f'{len(errores)} fila(s) con errores.')
+
+        except Exception as e:
+            messages.error(request, f'Error procesando el archivo: {str(e)}')
+
+    return render(request, 'inscripciones/canchas/carga_masiva_canchas.html', {
+        'form':    form,
+        'errores': errores,
+    })
+
+
+def _procesar_fila_cancha(fila, num_fila):
+    try:
+        def get(keys):
+            for k in keys:
+                if k in fila and fila[k] not in (None, ''):
+                    return str(fila[k]).strip()
+            return ''
+
+        nombre_escenario      = get(['nombre_escenario', 'nombre'])
+        localidad             = get(['localidad'])
+        barrio                = get(['barrio'])
+        direccion_exacta      = get(['direccion_exacta', 'direccion'])
+        tipo_disciplina       = get(['tipo_disciplina', 'disciplina'])
+        tipo_superficie       = get(['tipo_superficie', 'superficie'])
+        medidas_area          = get(['medidas_area', 'medidas'])
+        estado_conservacion   = get(['estado_conservacion', 'estado'])
+        capacidad_str         = get(['capacidad_espectadores', 'capacidad']) or '0'
+        codigo_idrd           = get(['codigo_idrd', 'codigo'])
+        codigo_rupi           = get(['codigo_rupi', 'rupi'])
+        tiene_iluminacion     = get(['tiene_iluminacion', 'iluminacion']).lower() in ('si', 'sí', 'true', '1', 'yes')
+        tiene_cerramiento     = get(['tiene_cerramiento', 'cerramiento']).lower() in ('si', 'sí', 'true', '1', 'yes')
+        observaciones         = get(['observaciones_tecnicas', 'observaciones'])
+
+        campos_requeridos = {
+            'nombre_escenario':    nombre_escenario,
+            'localidad':           localidad,
+            'barrio':              barrio,
+            'direccion_exacta':    direccion_exacta,
+            'tipo_disciplina':     tipo_disciplina,
+            'tipo_superficie':     tipo_superficie,
+            'medidas_area':        medidas_area,
+            'estado_conservacion': estado_conservacion,
+        }
+        faltantes = [k for k, v in campos_requeridos.items() if not v]
+        if faltantes:
+            return {'ok': False, 'error': f'Fila {num_fila}: Campos vacíos: {", ".join(faltantes)}'}
+
+        # Mapeo flexible de valores
+        disciplina_map = {
+            'futbol 11': 'FUTBOL_11', 'fútbol 11': 'FUTBOL_11',
+            'futbol 8':  'FUTBOL_8',  'fútbol 8':  'FUTBOL_8',
+            'futbol 5':  'FUTBOL_5',  'fútbol 5':  'FUTBOL_5',
+            'microfutbol': 'MICROFUTBOL', 'microfútbol': 'MICROFUTBOL',
+        }
+        superficie_map = {
+            'sintetica':      'SINTETICA',
+            'sintética':      'SINTETICA',
+            'natural':        'NATURAL',
+            'arena':          'ARENA',
+            'cemento':        'CEMENTO',
+            'dura':           'CEMENTO',
+            'cemento (dura)': 'CEMENTO',
+            'cemento (duro)': 'CEMENTO',
+        }
+        conservacion_map = {
+            'bueno': 'BUENO', 'regular': 'REGULAR',
+            'malo':  'MALO',  'critico': 'CRITICO', 'crítico': 'CRITICO',
+        }
+
+        tipo_disciplina_val    = disciplina_map.get(tipo_disciplina.lower(), tipo_disciplina.upper())
+        tipo_superficie_val    = superficie_map.get(tipo_superficie.lower(), tipo_superficie.upper())
+        estado_conservacion_val = conservacion_map.get(estado_conservacion.lower(), estado_conservacion.upper())
+
+        cancha = Cancha()
+        cancha.codigo_idrd            = codigo_idrd or None
+        cancha.nombre_escenario       = nombre_escenario
+        cancha.localidad              = localidad
+        cancha.barrio                 = barrio
+        cancha.direccion_exacta       = direccion_exacta
+        cancha.codigo_rupi            = codigo_rupi or None
+        cancha.tipo_disciplina        = tipo_disciplina_val
+        cancha.tipo_superficie        = tipo_superficie_val
+        cancha.medidas_area           = medidas_area
+        cancha.estado_conservacion    = estado_conservacion_val
+        cancha.tiene_iluminacion      = tiene_iluminacion
+        cancha.tiene_cerramiento      = tiene_cerramiento
+        cancha.capacidad_espectadores = int(float(capacidad_str)) if capacidad_str else 0
+        cancha.observaciones_tecnicas = observaciones or None
+        cancha.save()
+
+        return {'ok': True}
+
+    except Exception as e:
+        return {'ok': False, 'error': f'Fila {num_fila}: {str(e)}'}
+
+
+# ── Lista canchas entrenador — solo lectura ──
+@login_required
+def lista_canchas_entrenador(request):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    nombre     = request.GET.get('nombre', '').strip()
+    localidad  = request.GET.get('localidad', '').strip()
+    disciplina = request.GET.get('disciplina', '').strip()
+
+    canchas = Cancha.objects.filter(
+        _disponibilidad=Cancha.Disponibilidad.DISPONIBLE
+    ).order_by('_nombre_escenario')
+
+    if nombre:
+        canchas = canchas.filter(_nombre_escenario__icontains=nombre)
+    if localidad:
+        canchas = canchas.filter(_localidad__icontains=localidad)
+    if disciplina:
+        canchas = canchas.filter(_tipo_disciplina=disciplina)
+
+    return render(request, 'inscripciones/canchas/lista_canchas_entrenador.html', {
+        'canchas':    canchas,
+        'total':      canchas.count(),
+        'nombre':     nombre,
+        'localidad':  localidad,
+        'disciplina': disciplina,
+        'disciplinas': Cancha.TipoDisciplina.choices,
+    })

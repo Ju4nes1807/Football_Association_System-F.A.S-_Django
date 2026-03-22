@@ -2,6 +2,7 @@ from django.urls import path
 from .views import register, CustomLoginView
 from .forms import CustomPasswordResetForm
 from . import views
+from inscripciones import views as inscripciones_views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -12,12 +13,14 @@ urlpatterns = [
     path('dashboard/admin/', views.dashboard_admin, name = 'dashboard_admin'),
     path('dashboard/entrenador/', views.dashboard_entrenador, name = 'dashboard_entrenador'),
     path('dashboard/jugador/', views.dashboard_jugador, name = 'dashboard_jugador'),
+    path('mi-equipo/', views.mi_equipo_jugador, name='mi_equipo_jugador'),
     path('perfil/editar/', views.editar_perfil, name = 'editar_perfil'),
+    path('perfil/jugador/editar/', inscripciones_views.editar_perfil_jugador, name='editar_jugador_perfil'),
     path('password_reset/', auth_views.PasswordResetView.as_view(
     template_name='accounts/recuperar_contra.html',
     form_class=CustomPasswordResetForm,
-    email_template_name='accounts/password_reset_email.txt',       # ← texto plano (obligatorio)
-    html_email_template_name='accounts/password_reset_email.html', # ← este es el HTML bonito
+    email_template_name='accounts/password_reset_email.txt',
+    html_email_template_name='accounts/password_reset_email.html',
     subject_template_name='accounts/password_reset_subject.txt',
 ), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(

@@ -363,7 +363,7 @@
             email(v)       { if (!v.trim()) return 'El correo es obligatorio.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido.'; return null; },
             telefono(v)    { if (!v.trim()) return 'El teléfono es obligatorio.'; if (!/^[3][0-9]{9}$/.test(v.trim())) return 'Número colombiano válido (ej: 3001234567).'; return null; },
             rol(v)         { if (!v) return 'Debes seleccionar un rol.'; return null; },
-            experiencia(v) { if ($('rol').value === 'ENTRENADOR' && !v.trim()) return 'La experiencia es obligatoria.'; return null; },
+            experiencia(v) { if (!v.trim()) return 'La experiencia es obligatoria.'; return null; },
             password(v)    {
                 if (!v) return 'La contraseña es obligatoria.';
                 if (v.length<8) return 'Mínimo 8 caracteres.';
@@ -382,7 +382,7 @@
         }
 
         /* ── live validation listeners ── */
-        ['nombres','apellidos','num_documento','fecha_nacimiento','email','telefono','rol','experiencia','password'].forEach(id => {
+        ['nombres','apellidos','num_documento','fecha_nacimiento','email','telefono','experiencia','password'].forEach(id => {
             const el=$(id); if(!el) return;
             el.addEventListener('blur', ()=>validateField(id));
             el.addEventListener('input', ()=>{ if(el.closest('.field-group').classList.contains('field-error')) validateField(id); });
@@ -424,8 +424,7 @@
         $('backBtn').addEventListener('click', ()=> goToStep(1,'back'));
 
         $('registerForm').addEventListener('submit', e=>{
-            const isEntrenador = $('rol').value === 'ENTRENADOR';
-            const fields = isEntrenador ? [...step2, 'experiencia'] : step2;
+            const fields = step2;
             if (!fields.map(validateField).every(Boolean)) {
                 e.preventDefault();
                 showToast('Corrige los errores antes de registrarte.','error');
@@ -433,16 +432,6 @@
             }
             showToast('Formulario enviado. Procesando...','success');
         });
-
-        /* ── AGREGADO: mostrar/ocultar experiencia ── */
-        function toggleExperiencia() {
-            const isEntrenador = $('rol').value === 'ENTRENADOR';
-            const group = $('experiencia-group');
-            group.classList.toggle('hidden', !isEntrenador);
-            group.classList.toggle('block', isEntrenador);
-            if (!isEntrenador) $('experiencia').value = '';
-        }
-        $('rol').addEventListener('change', toggleExperiencia);
 
         /* ── AGREGADO: abrir paso 2 si hay errores de servidor en ese paso ── */
         const step2ErrorFields = ['email', 'telefono', 'experiencia', 'password'];

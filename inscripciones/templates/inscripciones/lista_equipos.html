@@ -46,13 +46,13 @@
         <div class="row">
 
             <!-- SIDEBAR -->
-            <div class="col-12 col-md-3 col-lg-2 sidebar mb-3 mt-4 pt-3">
+            <div class="col-12 col-md-3 col-lg-2 sidebar mb-3 mt-4 pt-3 sticky-top" style="top: 1rem; height: fit-content;">
                 <h5 class="mb-3 text-primary">Equipos</h5>
                 <div class="list-group">
                     <a href="{% url 'dashboard_admin' %}" class="list-group-item list-group-item-action">Inicio</a>
                     <a href="{% url 'inscripciones:lista_equipos' %}" class="list-group-item list-group-item-action active">Equipos</a>
                     <a href="#" class="list-group-item list-group-item-action">Torneos</a>
-                    <a href="#" class="list-group-item list-group-item-action">Canchas</a>
+                    <a href="{% url 'inscripciones:lista_canchas' %}" class="list-group-item list-group-item-action">Canchas</a>
                 </div>
             </div>
 

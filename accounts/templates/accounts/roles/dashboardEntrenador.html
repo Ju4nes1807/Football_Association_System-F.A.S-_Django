@@ -65,7 +65,7 @@
 
     <div class="container-fluid flex-grow-1">
         <div class="row">
-            <div class="col-12 col-md-3 col-lg-2 sidebar">
+            <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
                 <h5 class="mb-3 text-primary">Inicio</h5>
 
                 <div class="list-group">
@@ -75,8 +75,8 @@
                         class="list-group-item list-group-item-action">Equipo</a>
                     <a th:href="@{/lider/Entrenamientos}" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a th:href="@{/torneos/lider}" class="list-group-item list-group-item-action">Torneos</a>
-                    <a th:href="@{/canchas}" class="list-group-item list-group-item-action">Canchas</a>
-                    <a th:href="@{/jugadores}" class="list-group-item list-group-item-action">Jugadores</a>
+                    <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
+                    <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action">Jugadores</a>
                 </div>
             </div>
 
@@ -86,17 +86,20 @@
 
                 <!-- Tarjetas del Dashboard -->
                 <div class="row mt-4">
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Equipo</h5>
-                                <p>Consulte información sobre su equipo</p>
-                                <div class="d-flex flex-column align-items-center">
-                                    <i class="fas fa-school fa-3x text-warning mb-3"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="col-12 col-md-6 col-lg-4 mb-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <h5 class="card-title">Equipo</h5>
+                <p>Consulte información sobre su equipo</p>
+                <div class="d-flex flex-column align-items-center">
+                    <i class="fas fa-school fa-3x text-warning mb-3"></i>
+                    <span class="badge bg-warning text-dark fs-6">
+                        {{ total_jugadores }} jugador{{ total_jugadores|pluralize:"es" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
 
                     <div class="col-12 col-md-6 col-lg-4 mb-4">
                         <div class="card border-warning">
@@ -119,14 +122,15 @@
                     </div>
 
                     <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Canchas</h5>
-                                <p>Consulte todas las canchas que hay en Bogotá</p>
-                                <i class="fas fa-futbol fa-3x text-warning mb-3"></i>
-                            </div>
-                        </div>
-                    </div>
+    <div class="card border-warning">
+        <div class="card-body text-center">
+            <i class="fas fa-futbol fa-3x text-warning mb-3"></i>
+            <h5 class="card-title">Canchas</h5>
+            <p>Consulte todas las canchas disponibles en Bogotá</p>
+            <h2 class="fw-bold text-primary">{{ total_canchas }}</h2>
+        </div>
+    </div>
+</div>
                 </div>
             </div>
         </div>

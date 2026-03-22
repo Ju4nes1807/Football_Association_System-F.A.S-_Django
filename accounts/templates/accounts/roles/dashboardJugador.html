@@ -1,0 +1,161 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>F.A.S - Dashboard Jugador</title>
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .footer-content { flex-direction: column; }
+        @media (min-width: 576px) { .footer-content { flex-direction: row; } }
+        @media (max-width: 767.98px) {
+            .sidebar { border-right: none !important; border-bottom: 1px solid #dee2e6; padding-bottom: 1rem; margin-bottom: 1rem; }
+        }
+        .info-card { transition: transform 0.2s; }
+        .info-card:hover { transform: translateY(-5px); }
+        .list-group-item.active { background-color: #0d6efd; border-color: #0d6efd; color: #fff; }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <div class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <a href="{% url 'landingpage' %}" class="d-flex align-items-center">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+            <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navNavbarDropdown">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navNavbarDropdown">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <form method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesión</button>
+                    </form>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'editar_jugador_perfil' %}" class="nav-link text-light shadow">Editar Perfil</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container-fluid flex-grow-1">
+        <div class="row">
+
+            <!-- SIDEBAR -->
+            <aside class="col-md-3 col-lg-2 sidebar p-3 sticky-top" style="top: 1rem; height: fit-content;">
+                <h5 class="text-primary mb-3">Menú Jugador</h5>
+                <div class="list-group">
+                    <a href="{% url 'dashboard_jugador' %}" class="list-group-item list-group-item-action active">Inicio</a>
+                    <a href="#" class="list-group-item list-group-item-action">Entrenamientos</a>
+                    <a href="#" class="list-group-item list-group-item-action">Torneos</a>
+                    <a href="{% url 'mi_equipo_jugador' %}" class="list-group-item list-group-item-action">Mi Equipo</a>
+                </div>
+            </aside>
+
+            <!-- CONTENIDO -->
+            <main class="col-md-9 col-lg-10 p-4">
+                <h2 class="mb-1">Bienvenido, {{ request.user.nombres }} {{ request.user.apellidos }}</h2>
+                <h6 class="text-muted mb-4">Jugador</h6>
+
+                <!-- Información del jugador -->
+                <div class="row mt-2">
+                    <div class="col-12 mb-4">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i>Mi Información</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong><i class="fas fa-id-card me-1"></i>Documento:</strong> {{ request.user.num_documento }}</p>
+                                        <p><strong><i class="fas fa-envelope me-1"></i>Email:</strong> {{ request.user.email }}</p>
+                                        <p><strong><i class="fas fa-phone me-1"></i>Teléfono:</strong> {{ request.user.telefono }}</p>
+                                        <p><strong><i class="fas fa-birthday-cake me-1"></i>Fecha de Nacimiento:</strong> {{ request.user.fecha_nacimiento|date:"d/m/Y" }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        {% if jugador %}
+                                            <p><strong><i class="fas fa-tshirt me-1"></i>Dorsal:</strong> #{{ jugador.dorsal }}</p>
+                                            <p><strong><i class="fas fa-running me-1"></i>Posición:</strong> {{ jugador.posicion|title }}</p>
+                                            <p><strong><i class="fas fa-shoe-prints me-1"></i>Pie dominante:</strong> {{ jugador.pie_dominante|title }}</p>
+                                            {% if equipo %}
+                                                <p><strong><i class="fas fa-layer-group me-1"></i>Categoría:</strong> {{ equipo.categoria_display }}</p>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cards -->
+                <div class="row g-4 mt-1">
+
+                    <!-- Mi Equipo -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-warning shadow-sm info-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Mi Equipo</h5>
+                                {% if equipo %}
+                                    <p class="card-text"><strong>{{ equipo.nombre }}</strong></p>
+                                    <span class="badge
+                                        {% if equipo.estado == 'APROBADO' %}bg-success
+                                        {% elif equipo.estado == 'RECHAZADO' %}bg-danger
+                                        {% else %}bg-warning text-dark{% endif %} mb-2">
+                                        {{ equipo.estado_display }}
+                                    </span>
+                                {% else %}
+                                    <p class="card-text text-muted">Sin equipo asignado</p>
+                                {% endif %}
+                                <br>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Entrenamientos -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-warning shadow-sm info-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-dumbbell fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Entrenamientos</h5>
+                                <p class="card-text">Revisa tus próximos entrenamientos programados.</p>
+                                <a href="#" class="btn btn-warning btn-sm">Ver Entrenamientos</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Torneos -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-warning shadow-sm info-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Torneos</h5>
+                                <p class="card-text">Consulta los torneos en los que participas.</p>
+                                <a href="#" class="btn btn-warning btn-sm">Ver Torneos</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <footer class="bg-warning py-3 shadow mt-auto">
+        <div class="container text-start d-flex align-items-center footer-content shadow">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

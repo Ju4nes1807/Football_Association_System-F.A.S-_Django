@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Jugadores | F.A.S</title>
+    <style>
+        .list-group-item.active { background-color: #0d6efd; border-color: #0d6efd; color: #fff; }
+        @media (max-width: 767.98px) { .sidebar { border-bottom: 1px solid #dee2e6; padding-bottom: 1rem; margin-bottom: 1rem; } }
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+        .fas-toast { min-width: 280px; padding: 14px 20px; border-radius: 12px; font-weight: 600; font-size: .9rem; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); transform: translateY(80px); opacity: 0; transition: all .35s cubic-bezier(.34,1.56,.64,1); }
+        .fas-toast.show { transform: translateY(0); opacity: 1; }
+        .fas-toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
+        .fas-toast.error { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <div class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <a href="landinpage.html" class="d-flex align-items-center">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
+            <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navNavbarDropdown">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navNavbarDropdown">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link text-light shadow btn btn-link">
+                        Cerrar sesión
+                    </button>
+                </form>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container-fluid flex-grow-1">
+        <div class="row">
+
+            <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
+                <h5 class="mb-3 text-primary">Jugadores</h5>
+
+                <div class="list-group">
+                    <a href="{% url 'dashboard_entrenador' %}"
+                        class="list-group-item list-group-item-action">Inicio</a>
+                    <a href="{% url 'inscripciones:mi_equipo' %}"
+                        class="list-group-item list-group-item-action">Equipo</a>
+                    <a th:href="@{/lider/Entrenamientos}" class="list-group-item list-group-item-action">Entrenamientos</a>
+                    <a th:href="@{/torneos/lider}" class="list-group-item list-group-item-action">Torneos</a>
+                    <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
+                    <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action active">Jugadores</a>
+                </div>
+            </div>
+
+            <div class="col-md-9 col-lg-10 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-0">Jugadores</h2>
+                        <small class="text-muted">{{ equipo.nombre }} — {{ equipo.categoria_display }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'inscripciones:registrar_jugador' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i> Agregar Jugador
+                        </a>
+                        <a href="{% url 'inscripciones:carga_masiva_jugadores' %}" class="btn btn-warning">
+                            <i class="fas fa-upload me-1"></i> Carga Masiva
+                        </a>
+                    </div>
+                </div>
+
+                {% if jugadores %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>#</th>
+                                <th>Dorsal</th>
+                                <th>Nombre</th>
+                                <th>Documento</th>
+                                <th>Posición</th>
+                                <th>Pie</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for jugador in jugadores %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td><span class="badge bg-primary fs-6">{{ jugador.dorsal }}</span></td>
+                                <td><strong>{{ jugador.nombres }} {{ jugador.apellidos }}</strong></td>
+                                <td>{{ jugador.num_documento }}</td>
+                                <td>{{ jugador.posicion|title }}</td>
+                                <td>{{ jugador.pie_dominante|title }}</td>
+                                <td>{{ jugador.email }}</td>
+                                <td>{{ jugador.telefono }}</td>
+                                <td>
+    <a href="{% url 'inscripciones:editar_jugador' jugador.id %}" class="btn btn-primary btn-sm me-1">
+        <i class="fas fa-edit"></i>
+    </a>
+    <button type="button" class="btn btn-danger btn-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#modalConfirmacion"
+        data-form-id="formEliminar_{{ jugador.id }}"
+        data-nombre="{{ jugador.nombres }} {{ jugador.apellidos }}">
+        <i class="fas fa-trash"></i>
+    </button>
+    <form id="formEliminar_{{ jugador.id }}"
+        action="{% url 'inscripciones:eliminar_jugador' jugador.id %}"
+        method="POST" class="d-none">
+        {% csrf_token %}
+    </form>
+</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info d-flex align-items-center gap-3">
+                    <i class="fas fa-info-circle fa-2x"></i>
+                    <div>
+                        <strong>No hay jugadores registrados.</strong>
+                        <p class="mb-0">Agrega jugadores individualmente o mediante carga masiva.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-warning py-3 shadow mt-auto">
+        <div class="container text-start d-flex align-items-center shadow">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <div class="modal fade" id="modalConfirmacion" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar eliminación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas eliminar al jugador <strong id="modal-nombre-jugador"></strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sí, eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"><div class="fas-toast" id="fas-toast"><span id="fas-toast-msg"></span></div></div>
+    <div id="django-messages" hidden
+        {% if messages %}{% for message in messages %}data-msg="{{ message }}" data-type="{{ message.tags }}"{% endfor %}{% endif %}
+    ></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (() => {
+        function showToast(msg, type='success') {
+            const t=document.getElementById('fas-toast');
+            document.getElementById('fas-toast-msg').textContent=msg;
+            t.className=`fas-toast show ${type}`;
+            setTimeout(()=>t.classList.remove('show'),4000);
+        }
+        let formId=null;
+        document.querySelectorAll('[data-bs-target="#modalConfirmacion"]').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                formId=btn.getAttribute('data-form-id');
+                document.getElementById('modal-nombre-jugador').textContent=btn.getAttribute('data-nombre');
+            });
+        });
+        document.getElementById('confirmDeleteBtn').addEventListener('click',()=>{
+            if(formId) document.getElementById(formId)?.submit();
+        });
+        const d=document.getElementById('django-messages');
+        if(d&&d.dataset.msg) showToast(d.dataset.msg,d.dataset.type||'success');
+    })();
+    </script>
+</body>
+</html>

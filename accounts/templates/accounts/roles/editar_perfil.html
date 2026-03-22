@@ -221,6 +221,13 @@
             </svg>
         </button>
     </div>
+    <div class="mt-2 bg-gray-200 rounded-full overflow-hidden">
+        <div id="strength-bar" style="width:0%; height:4px; border-radius:4px; transition: width .3s, background .3s;"></div>
+    </div>
+    <p id="strength-label" class="text-xs mt-1 text-gray-400"></p>
+    <p class="invalid-feedback hidden" id="err-password_nueva"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
+    {% for error in form.password_nueva.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
+</div>
     <p class="invalid-feedback hidden" id="err-password_nueva"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
     {% for error in form.password_nueva.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
 </div>
@@ -349,6 +356,27 @@ if (msgs) {
     const type = msgs.dataset.type;
     if (msg) showToast(msg, type || 'success');
 }
+
+/* ── Password strength ── */
+$('password_nueva').addEventListener('input', function () {
+    const v = this.value; let s = 0;
+    if (v.length >= 8)          s++;
+    if (/[A-Z]/.test(v))        s++;
+    if (/[0-9]/.test(v))        s++;
+    if (/[^a-zA-Z0-9]/.test(v)) s++;
+
+    const lvl = [
+        { p: '0%',   c: '',        t: '' },
+        { p: '25%',  c: '#ef4444', t: '🔴 Muy débil' },
+        { p: '50%',  c: '#f97316', t: '🟠 Débil'     },
+        { p: '75%',  c: '#eab308', t: '🟡 Regular'   },
+        { p: '100%', c: '#22c55e', t: '🟢 Fuerte'    },
+    ][s];
+
+    $('strength-bar').style.width      = v.length ? lvl.p : '0%';
+    $('strength-bar').style.background = lvl.c;
+    $('strength-label').textContent    = v.length ? lvl.t : '';
+});
 
 /* ── Toggle passwords ── */
 function togglePassword(btnId, inputId, iconId) {

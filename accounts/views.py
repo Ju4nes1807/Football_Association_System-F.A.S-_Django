@@ -3,13 +3,15 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.db import IntegrityError
 from django.contrib.auth.views import LoginView
-from .models import Usuario, Entrenador
-from .forms import BaseRegistroForm, RegistroAdminForm, RegistroPublicoForm, EditarPerfilForm
+
+from inscripciones.views import _get_equipo_entrenador
+from .models import Jugador, Usuario, Entrenador
+from .forms import RegistroAdminForm, RegistroPublicoForm, EditarPerfilForm
 from .services.email_service import enviar_credenciales_admin
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from inscripciones.models import Equipo
+from inscripciones.models import Equipo, Cancha
 
 def _handle_integrity_error(form, e):
     """Mapea errores de BD al campo correspondiente."""
@@ -89,7 +91,7 @@ def register_admin(request):
                 enviar_credenciales_admin(
                     nombre    = f"{data['nombres']} {data['apellidos']}",
                     email     = data['email'],
-                    password  = data['password'],  # antes del hash
+                    password  = data['password'],
                     login_url = request.build_absolute_uri(reverse('login')),
                 )
             except Exception:
@@ -174,16 +176,46 @@ def dashboard_admin(request):
     if request.user.rol != 'ADMIN':
         return redirect('dashboard_entrenador')
 
-    total_equipos = Equipo.objects.count()
-
     return render(request, 'accounts/roles/dashboardAdmin.html', {
-        'total_equipos': total_equipos,
+        'total_equipos': Equipo.objects.count(),
+        'total_canchas': Cancha.objects.count(),
     })
+
 
 @login_required
 def dashboard_entrenador(request):
-    return render(request, 'accounts/roles/dashboardEntrenador.html')
+    equipo          = _get_equipo_entrenador(request.user) if hasattr(request.user, 'entrenador') else None
+    total_jugadores = Jugador.objects.filter(equipo=equipo).count() if equipo else 0
+    total_canchas   = Cancha.objects.filter(_disponibilidad='DISPONIBLE').count()
+
+    return render(request, 'accounts/roles/dashboardEntrenador.html', {
+        'equipo':          equipo,
+        'total_jugadores': total_jugadores,
+        'total_canchas':   total_canchas,
+    })
 
 @login_required
 def dashboard_jugador(request):
-    return render(request, 'accounts/roles/dashboardJugador.html')
+    if request.user.rol != 'JUGADOR':
+        return redirect('dashboard_entrenador')
+
+    user    = request.user
+    jugador = getattr(user, 'jugador', None)
+    equipo  = jugador.equipo if jugador else None
+
+    return render(request, 'accounts/roles/dashboardJugador.html', {
+        'jugador': jugador,
+        'equipo':  equipo,
+    })
+
+@login_required
+def mi_equipo_jugador(request):
+    if request.user.rol != 'JUGADOR':
+        return redirect('dashboard_entrenador')
+
+    jugador = getattr(request.user, 'jugador', None)
+    equipo  = jugador.equipo if jugador else None
+
+    return render(request, 'accounts/roles/mi_equipo_jugador.html', {
+        'equipo': equipo,
+    })

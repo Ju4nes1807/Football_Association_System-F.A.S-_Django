@@ -14,6 +14,7 @@ class Command(BaseCommand):
         parser.add_argument('--email',      required=True)
         parser.add_argument('--telefono',   required=True)
         parser.add_argument('--password',   required=True)
+        # Pendiente para cambio
         parser.add_argument('--base-url', default='http://localhost:8000')
 
     def handle(self, *args, **options):
