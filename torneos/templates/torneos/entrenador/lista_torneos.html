@@ -7,52 +7,72 @@
     <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <title>Torneos - Entrenador</title>
+    <title>Torneos | F.A.S</title>
     <style>
         .torneo-card { transition: transform 0.2s; }
         .torneo-card:hover { transform: translateY(-5px); }
+        .list-group-item.active { background-color: #0d6efd; border-color: #0d6efd; color: #fff; }
         @media (max-width:767.98px) { .sidebar { border-bottom: 1px solid #dee2e6; padding-bottom:1rem; margin-bottom:1rem; } }
+
+        .section-divider {
+            font-size: .7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #6c757d;
+            margin-bottom: 14px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .empty-state { text-align: center; padding: 40px 24px; color: #adb5bd; background: #fff; border-radius: 10px; border: 1px dashed #dee2e6; }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+
+        .card-inscrito { border-left: 4px solid #198754 !important; }
+        .card-disponible { border-left: 4px solid #0d6efd !important; }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-    <nav class="navbar navbar-expand-md bg-primary shadow mb-4">
-        <div class="container-fluid">
-            <a href="{% url 'dashboard_entrenador' %}" class="d-flex align-items-center text-decoration-none">
-                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" style="width:75px;height:75px;" class="me-2">
-                <span class="navbar-brand text-light fs-2 m-0">F.A.S</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="nav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="nav-link text-light btn btn-link">Cerrar sesión</button>
-                        </form>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'editar_perfil' %}" class="nav-link text-light">Modificar Perfil</a>
-                    </li>
-                </ul>
-            </div>
+    <div class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <a href="landinpage.html" class="d-flex align-items-center">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
+            <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navNavbarDropdown">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navNavbarDropdown">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesión</button>
+                    </form>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
+                </li>
+            </ul>
         </div>
-    </nav>
+    </div>
 
     <div class="container-fluid flex-grow-1">
         <div class="row">
-            <aside class="col-md-3 col-lg-2 sidebar p-3">
-                <h5 class="text-primary mb-3">Torneos</h5>
+
+            <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
+                <h5 class="mb-3 text-primary">Torneos</h5>
                 <div class="list-group">
                     <a href="{% url 'dashboard_entrenador' %}" class="list-group-item list-group-item-action">Inicio</a>
-                    <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Mi Equipo</a>
+                    <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Equipo</a>
+                    <a href="#" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action active">Torneos</a>
+                    <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
+                    <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action">Jugadores</a>
                 </div>
-            </aside>
+            </div>
 
-            <main class="col-md-9 col-lg-10 p-4">
+            <div class="col-12 col-md-9 col-lg-10 p-4">
+
                 {% if messages %}
                     {% for msg in messages %}
                         <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
@@ -61,104 +81,129 @@
                     {% endfor %}
                 {% endif %}
 
-                <h3><i class="fas fa-trophy"></i> Torneos</h3>
+                <h3 class="mt-2 mb-4"><i class="fas fa-trophy text-warning me-2"></i>Torneos</h3>
 
-                <!-- Mis inscripciones -->
-                <h4 class="mt-4 mb-3"><i class="fas fa-clipboard-check text-success"></i> Mis Torneos Inscritos</h4>
-                {% if mis_inscripciones %}
-                    <div class="row">
+                {% if not equipo %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Necesitas <a href="{% url 'inscripciones:registrar_equipo' %}" class="fw-semibold">registrar un equipo</a> para inscribirte en torneos.</span>
+                </div>
+                {% elif equipo.estado != 'APROBADO' %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                    <i class="fas fa-clock"></i>
+                    <span>Tu equipo <strong>{{ equipo.nombre }}</strong> está en estado <strong>{{ equipo.estado_display }}</strong>. Debe ser aprobado para inscribirse.</span>
+                </div>
+                {% endif %}
+
+                <!-- ── MIS TORNEOS INSCRITOS ── -->
+                <div class="mb-5">
+                    <p class="section-divider"><i class="fas fa-clipboard-check me-1"></i>Mis torneos inscritos</p>
+
+                    {% if mis_inscripciones %}
+                    <div class="row g-3">
                         {% for inscripcion in mis_inscripciones %}
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card torneo-card shadow-sm h-100 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <h5 class="mb-0"><i class="fas fa-trophy"></i> {{ inscripcion.torneo.nombre }}</h5>
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="card torneo-card border-warning card-inscrito h-100 shadow-sm">
+                                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                                    <span class="fw-bold text-dark" style="font-size:.9rem;">{{ inscripcion.torneo.nombre }}</span>
+                                    {% if inscripcion.torneo.estado == 'PROXIMO' %}<span class="badge bg-info text-dark">Próximo</span>
+                                    {% elif inscripcion.torneo.estado == 'EN_CURSO' %}<span class="badge bg-success">En curso</span>
+                                    {% else %}<span class="badge bg-secondary">{{ inscripcion.torneo.get_estado_display }}</span>{% endif %}
                                 </div>
-                                <div class="card-body">
-                                    <p><strong>Categoría:</strong> {{ inscripcion.torneo.get_categoria_display }}</p>
-                                    <p><strong>Inicio:</strong> {{ inscripcion.torneo.fecha_inicio|date:"d/m/Y" }}</p>
-                                    <p><strong>Fin:</strong> {{ inscripcion.torneo.fecha_fin|date:"d/m/Y" }}</p>
-                                    <p><strong>Ubicación:</strong> {{ inscripcion.torneo.ubicacion }}</p>
-                                    <a href="{% url 'torneos:entrenador_mis_partidos' inscripcion.torneo.id %}"
-                                       class="btn btn-info btn-sm w-100 mb-2">
-                                        <i class="fas fa-futbol"></i> Ver Partidos
-                                    </a>
-                                    {% if inscripcion.torneo.estado == 'PROXIMO' %}
-                                        <form method="POST" action="{% url 'torneos:entrenador_cancelar' inscripcion.id %}">
+                                <div class="card-body py-2 px-3">
+                                    <p class="mb-1 small text-muted"><i class="fas fa-layer-group me-1"></i>{{ inscripcion.torneo.get_categoria_display }}</p>
+                                    <p class="mb-1 small text-muted"><i class="fas fa-calendar-alt me-1"></i>{{ inscripcion.torneo.fecha_inicio|date:"d/m/Y" }} — {{ inscripcion.torneo.fecha_fin|date:"d/m/Y" }}</p>
+                                    <p class="mb-2 small text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ inscripcion.torneo.ubicacion }}</p>
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'torneos:entrenador_mis_partidos' inscripcion.torneo.id %}" class="btn btn-outline-success btn-sm flex-grow-1">
+                                            <i class="fas fa-futbol me-1"></i>Ver partidos
+                                        </a>
+                                        {% if inscripcion.torneo.estado == 'PROXIMO' %}
+                                        <form method="POST" action="{% url 'torneos:entrenador_cancelar' inscripcion.id %}" style="display:contents;">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger btn-sm w-100"
-                                                    onclick="return confirm('¿Cancelar inscripción?')">
-                                                <i class="fas fa-times-circle"></i> Cancelar Inscripción
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                onclick="return confirm('¿Cancelar inscripción en {{ inscripcion.torneo.nombre }}?')" title="Cancelar">
+                                                <i class="fas fa-times"></i>
                                             </button>
                                         </form>
-                                    {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
-                {% else %}
-                    <div class="alert alert-info"><i class="fas fa-info-circle"></i> No estás inscrito en ningún torneo.</div>
-                {% endif %}
-
-                <!-- Torneos disponibles -->
-                <h4 class="mt-5 mb-3"><i class="fas fa-star text-warning"></i> Torneos Disponibles</h4>
-                {% if not equipo %}
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Necesitas <a href="{% url 'inscripciones:registrar_equipo' %}">registrar un equipo</a> para inscribirte.
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-trophy"></i>
+                        <p class="mb-0 fw-semibold">No estás inscrito en ningún torneo.</p>
+                        <p class="small mt-1 mb-0">Explora los torneos disponibles abajo e inscribe tu equipo.</p>
                     </div>
-                {% elif equipo.estado != 'APROBADO' %}
-                    <div class="alert alert-warning">
-                        <i class="fas fa-clock"></i> Tu equipo está en estado <strong>{{ equipo.estado_display }}</strong>. Debe ser aprobado para inscribirse.
-                    </div>
-                {% endif %}
+                    {% endif %}
+                </div>
 
-                {% if torneos_disponibles %}
-                    <div class="row">
+                <!-- ── TORNEOS DISPONIBLES ── -->
+                <div>
+                    <p class="section-divider"><i class="fas fa-star me-1"></i>Torneos disponibles para inscripción</p>
+
+                    {% if torneos_disponibles %}
+                    <div class="row g-3">
                         {% for torneo in torneos_disponibles %}
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card torneo-card shadow-sm h-100 border-warning">
-                                <div class="card-header bg-warning">
-                                    <h5 class="mb-0"><i class="fas fa-trophy"></i> {{ torneo.nombre }}</h5>
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="card torneo-card border-warning card-disponible h-100 shadow-sm">
+                                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                                    <span class="fw-bold text-dark" style="font-size:.9rem;">{{ torneo.nombre }}</span>
+                                    <span class="badge bg-primary">Próximo</span>
                                 </div>
-                                <div class="card-body">
-                                    <p><strong>Categoría:</strong> {{ torneo.get_categoria_display }}</p>
-                                    <p><strong>Inicio:</strong> {{ torneo.fecha_inicio|date:"d/m/Y" }}</p>
-                                    <p><strong>Fin:</strong> {{ torneo.fecha_fin|date:"d/m/Y" }}</p>
-                                    <p><strong>Ubicación:</strong> {{ torneo.ubicacion }}</p>
-                                    <p>
-                                        <strong>Cupos:</strong>
-                                        <span class="badge bg-primary">{{ torneo.cupos_disponibles }} / {{ torneo.cupo_maximo }}</span>
+                                <div class="card-body py-2 px-3">
+                                    <p class="mb-1 small text-muted"><i class="fas fa-layer-group me-1"></i>{{ torneo.get_categoria_display }}</p>
+                                    <p class="mb-1 small text-muted"><i class="fas fa-calendar-alt me-1"></i>{{ torneo.fecha_inicio|date:"d/m/Y" }} — {{ torneo.fecha_fin|date:"d/m/Y" }}</p>
+                                    <p class="mb-1 small text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ torneo.ubicacion }}</p>
+                                    <p class="mb-2 small">
+                                        <i class="fas fa-users me-1 text-muted"></i>
+                                        <strong>{{ torneo.cupos_disponibles }}</strong> cupo{{ torneo.cupos_disponibles|pluralize }} de {{ torneo.cupo_maximo }}
                                     </p>
                                     {% if torneo.descripcion %}
-                                        <p class="text-muted small">{{ torneo.descripcion }}</p>
+                                    <p class="text-muted small mb-2" style="line-height:1.4;">{{ torneo.descripcion }}</p>
                                     {% endif %}
+
                                     {% if equipo and equipo.estado == 'APROBADO' %}
-                                        <form method="POST" action="{% url 'torneos:entrenador_inscribir' torneo.id %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-success btn-sm w-100">
-                                                <i class="fas fa-check-circle"></i> Inscribir Mi Equipo
-                                            </button>
-                                        </form>
+                                    <form method="POST" action="{% url 'torneos:entrenador_inscribir' torneo.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary w-100 btn-sm">
+                                            <i class="fas fa-plus-circle me-1"></i>Inscribir mi equipo
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <button class="btn btn-secondary w-100 btn-sm" disabled>
+                                        <i class="fas fa-lock me-1"></i>Equipo no disponible
+                                    </button>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
-                {% else %}
-                    <div class="alert alert-info"><i class="fas fa-info-circle"></i> No hay torneos disponibles en este momento.</div>
-                {% endif %}
-            </main>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p class="mb-0 fw-semibold">No hay torneos disponibles en este momento.</p>
+                        <p class="small mt-1 mb-0">Los nuevos torneos aparecerán aquí cuando el administrador los publique.</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+            </div>
         </div>
     </div>
 
-    <footer class="bg-warning py-3 shadow mt-auto">
-        <div class="container d-flex align-items-center">
-            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" style="width:75px;height:75px;" class="me-2">
+    <footer class="bg-warning py-3 mt-3 shadow mt-auto">
+        <div class="container text-start d-flex align-items-center shadow">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
             <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
         </div>
     </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

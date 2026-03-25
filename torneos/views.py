@@ -158,17 +158,20 @@ def entrenador_lista_torneos(request):
 
     equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
 
-    torneos_disponibles = Torneo.objects.filter(
-        estado=Torneo.Estado.PROXIMO,
-        cupo_maximo__gt=0,
-    )
-    torneos_disponibles = [t for t in torneos_disponibles if t.puede_inscribirse]
-
     mis_inscripciones = []
+    ids_inscritos = []
     if equipo:
         mis_inscripciones = InscripcionTorneo.objects.filter(
             equipo=equipo, estado='ACTIVA'
         ).select_related('torneo')
+        ids_inscritos = list(mis_inscripciones.values_list('torneo_id', flat=True))
+
+    # Excluir torneos en los que el equipo ya está inscrito
+    torneos_disponibles = Torneo.objects.filter(
+        estado=Torneo.Estado.PROXIMO,
+        cupo_maximo__gt=0,
+    ).exclude(id__in=ids_inscritos)
+    torneos_disponibles = [t for t in torneos_disponibles if t.puede_inscribirse]
 
     return render(request, 'torneos/entrenador/lista_torneos.html', {
         'torneos_disponibles': torneos_disponibles,

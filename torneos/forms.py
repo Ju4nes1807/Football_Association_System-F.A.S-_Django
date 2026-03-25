@@ -54,8 +54,19 @@ class PartidoForm(forms.ModelForm):
                 estado='ACTIVA'
             ).values_list('equipo_id', flat=True)
             from inscripciones.models import Equipo
-            self.fields['equipo_local'].queryset  = Equipo.objects.filter(id__in=equipos_ids)
-            self.fields['equipo_visita'].queryset = Equipo.objects.filter(id__in=equipos_ids)
+            qs = Equipo.objects.filter(id__in=equipos_ids)
+            self.fields['equipo_local'].queryset  = qs
+            self.fields['equipo_visita'].queryset = qs
+
+    def clean(self):
+        cleaned_data = super().clean()
+        local   = cleaned_data.get('equipo_local')
+        visita  = cleaned_data.get('equipo_visita')
+        if local and visita and local == visita:
+            raise forms.ValidationError(
+                'El equipo local y el equipo visitante no pueden ser el mismo.'
+            )
+        return cleaned_data
 
 
 class EstadisticaForm(forms.ModelForm):
