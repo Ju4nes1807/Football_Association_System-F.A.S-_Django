@@ -1,6 +1,7 @@
 from django.db import models
 from inscripciones.models import Equipo
 from accounts.models import Jugador
+from datetime import date
 
 
 class Torneo(models.Model):
@@ -41,12 +42,33 @@ class Torneo(models.Model):
 
     @property
     def puede_inscribirse(self):
-        from datetime import date
         return (
             self.cupos_disponibles > 0
             and self.estado == self.Estado.PROXIMO
             and date.today() < self.fecha_inicio
         )
+
+    def actualizar_estado(self):
+        """Actualiza el estado del torneo según las fechas actuales."""
+        hoy = date.today()
+        if self.estado == self.Estado.CANCELADO:
+            return
+        if hoy < self.fecha_inicio:
+            nuevo = self.Estado.PROXIMO
+        elif self.fecha_inicio <= hoy <= self.fecha_fin:
+            nuevo = self.Estado.EN_CURSO
+        else:
+            # Fecha fin pasada — verificar si todos los partidos terminaron
+            partidos = self.partidos.all()
+            if partidos.exists() and partidos.exclude(estado='FINALIZADO').exclude(estado='SUSPENDIDO').count() == 0:
+                nuevo = self.Estado.FINALIZADO
+            elif not partidos.exists():
+                nuevo = self.Estado.FINALIZADO
+            else:
+                nuevo = self.Estado.EN_CURSO
+        if self.estado != nuevo:
+            self.estado = nuevo
+            self.save(update_fields=['estado'])
 
     def __str__(self):
         return self.nombre
@@ -63,13 +85,13 @@ class InscripcionTorneo(models.Model):
         ACTIVA    = 'ACTIVA',    'Activa'
         CANCELADA = 'CANCELADA', 'Cancelada'
 
-    torneo           = models.ForeignKey(
+    torneo            = models.ForeignKey(
         Torneo, on_delete=models.CASCADE, related_name='inscripciones'
     )
-    equipo           = models.ForeignKey(
+    equipo            = models.ForeignKey(
         Equipo, on_delete=models.CASCADE, related_name='inscripciones_torneo'
     )
-    estado           = models.CharField(
+    estado            = models.CharField(
         max_length=10, choices=Estado.choices, default=Estado.ACTIVA
     )
     fecha_inscripcion = models.DateTimeField(auto_now_add=True)
@@ -86,10 +108,10 @@ class InscripcionTorneo(models.Model):
 class Partido(models.Model):
 
     class Estado(models.TextChoices):
-        PROGRAMADO  = 'PROGRAMADO',  'Programado'
-        EN_JUEGO    = 'EN_JUEGO',    'En juego'
-        FINALIZADO  = 'FINALIZADO',  'Finalizado'
-        SUSPENDIDO  = 'SUSPENDIDO',  'Suspendido'
+        PROGRAMADO = 'PROGRAMADO',  'Programado'
+        EN_JUEGO   = 'EN_JUEGO',    'En juego'
+        FINALIZADO = 'FINALIZADO',  'Finalizado'
+        SUSPENDIDO = 'SUSPENDIDO',  'Suspendido'
 
     torneo        = models.ForeignKey(
         Torneo, on_delete=models.CASCADE, related_name='partidos'
@@ -111,6 +133,11 @@ class Partido(models.Model):
     )
     jornada       = models.PositiveIntegerField(default=1)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Al guardar un partido, actualizar el estado del torneo
+        self.torneo.actualizar_estado()
+
     def __str__(self):
         return f'{self.equipo_local} vs {self.equipo_visita} — {self.torneo}'
 
@@ -121,14 +148,18 @@ class Partido(models.Model):
 
 
 class EstadisticaJugador(models.Model):
-    partido = models.ForeignKey(
+    partido            = models.ForeignKey(
         Partido, on_delete=models.CASCADE, related_name='estadisticas'
     )
-    jugador = models.ForeignKey(
+    jugador            = models.ForeignKey(
         Jugador, on_delete=models.CASCADE, related_name='estadisticas'
     )
-    goles          = models.PositiveIntegerField(default=0)
-    asistencias    = models.PositiveIntegerField(default=0)
+    equipo             = models.ForeignKey(
+        Equipo, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='estadisticas_torneo'
+    )
+    goles              = models.PositiveIntegerField(default=0)
+    asistencias        = models.PositiveIntegerField(default=0)
     tarjetas_amarillas = models.PositiveIntegerField(default=0)
     tarjetas_rojas     = models.PositiveIntegerField(default=0)
     minutos_jugados    = models.PositiveIntegerField(default=0)
