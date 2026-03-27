@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path,include
 from .views import register, CustomLoginView
 from .forms import CustomPasswordResetForm
 from . import views
@@ -12,6 +12,7 @@ urlpatterns = [
     path('registro/admin/',  views.register_admin, name='register_admin'),
     path('dashboard/admin/', views.dashboard_admin, name = 'dashboard_admin'),
     path('dashboard/entrenador/', views.dashboard_entrenador, name = 'dashboard_entrenador'),
+    path('entrenamientos/', include('entrenamientos.urls')),
     path('dashboard/jugador/', views.dashboard_jugador, name = 'dashboard_jugador'),
     path('mi-equipo/', views.mi_equipo_jugador, name='mi_equipo_jugador'),
     path('perfil/editar/', views.editar_perfil, name = 'editar_perfil'),

@@ -219,3 +219,4 @@ def mi_equipo_jugador(request):
     return render(request, 'accounts/roles/mi_equipo_jugador.html', {
         'equipo': equipo,
     })
+    
