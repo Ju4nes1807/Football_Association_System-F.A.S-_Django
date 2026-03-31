@@ -9,11 +9,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <title>{{ torneo.nombre }} | F.A.S</title>
     <style>
-        .list-group-item.active { background-color: #0d6efd; border-color: #0d6efd; }
-        .pos-1 { background: #fff9e6; font-weight: 700; }
-        .pos-2 { background: #f5f5f5; }
-        .pos-3 { background: #fff4ee; }
-        .medal { font-size: .85rem; }
+        .list-group-item.active { background-color:#0d6efd; border-color:#0d6efd; }
+        .pos-1 { background:#fff9e6; font-weight:700; }
+        .pos-2 { background:#f5f5f5; }
+        .pos-3 { background:#fff4ee; }
+        .fase-header {
+            font-size:.7rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.08em; color:#6c757d;
+            border-bottom:2px solid #e9ecef; padding-bottom:6px; margin-bottom:12px;
+        }
+        .partido-row { border-bottom:1px solid #f0f0f0; padding:10px 0; }
+        .partido-row:last-child { border-bottom:none; }
+        .score-badge {
+            background:#f8f9fa; border:1px solid #dee2e6;
+            border-radius:6px; padding:4px 12px;
+            font-weight:700; font-size:.9rem; min-width:58px; text-align:center;
+        }
+        .bracket-card { border:none; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+        .fase-tab.active { background:#0d6efd; color:#fff; border-color:#0d6efd; }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -58,69 +71,74 @@
             <div class="col-12 col-md-9 col-lg-10 p-4">
 
                 {% if messages %}
-                    {% for msg in messages %}
-                        <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
-                            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
+                {% for msg in messages %}
+                <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+                    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
                 {% endif %}
 
                 <!-- Encabezado -->
-                <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
-                    <a href="{% url 'torneos:admin_lista_torneos' %}" class="btn btn-warning btn-sm">
+                <div class="d-flex align-items-start gap-3 mb-4 flex-wrap">
+                    <a href="{% url 'torneos:admin_lista_torneos' %}" class="btn btn-warning btn-sm mt-1">
                         <i class="fas fa-arrow-left me-1"></i>Volver
                     </a>
-                    <div>
+                    <div class="flex-grow-1">
                         <h3 class="mb-0"><i class="fas fa-trophy text-warning me-2"></i>{{ torneo.nombre }}</h3>
-                        <small class="text-muted">{{ torneo.get_categoria_display }} &bull; {{ torneo.ubicacion }}</small>
+                        <div class="text-muted small mt-1">
+                            {{ torneo.get_categoria_display }} &bull;
+                            {{ torneo.get_formato_display }} &bull;
+                            {{ torneo.fecha_inicio|date:"d/m/Y" }} al {{ torneo.fecha_fin|date:"d/m/Y" }} &bull;
+                            {{ torneo.ubicacion }}
+                        </div>
                     </div>
-                    <div class="ms-auto d-flex gap-2 flex-wrap">
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% if torneo.estado == 'PROXIMO' %}<span class="badge bg-info fs-6">Próximo</span>
+                        {% elif torneo.estado == 'EN_CURSO' %}<span class="badge bg-success fs-6">En curso</span>
+                        {% elif torneo.estado == 'FINALIZADO' %}<span class="badge bg-secondary fs-6">Finalizado</span>
+                        {% else %}<span class="badge bg-danger fs-6">Cancelado</span>{% endif %}
                         <a href="{% url 'torneos:admin_editar_torneo' torneo.id %}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-edit me-1"></i>Editar torneo
+                            <i class="fas fa-edit me-1"></i>Editar
                         </a>
                     </div>
                 </div>
 
-                <!-- Info general -->
+                <!-- Estadísticas rápidas -->
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-md-3">
                         <div class="card border-0 shadow-sm text-center py-3">
-                            <div class="fw-bold fs-4 text-primary">{{ inscritos.count }}</div>
-                            <div class="small text-muted">Equipos inscritos</div>
+                            <div class="fw-bold fs-4 text-primary">{{ inscritos.count }}/{{ torneo.cupo_maximo }}</div>
+                            <div class="small text-muted">Equipos</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="card border-0 shadow-sm text-center py-3">
-                            <div class="fw-bold fs-4 text-success">{{ partidos.count }}</div>
-                            <div class="small text-muted">Partidos</div>
+                            <div class="fw-bold fs-4 text-success">{{ partidos_grupos.count }}</div>
+                            <div class="small text-muted">Partidos de grupos</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="card border-0 shadow-sm text-center py-3">
                             <div class="fw-bold fs-4 text-warning">
-                                {% if torneo.estado == 'PROXIMO' %}<span class="badge bg-info">Próximo</span>
-                                {% elif torneo.estado == 'EN_CURSO' %}<span class="badge bg-success">En curso</span>
-                                {% elif torneo.estado == 'FINALIZADO' %}<span class="badge bg-secondary">Finalizado</span>
-                                {% else %}<span class="badge bg-danger">Cancelado</span>{% endif %}
+                                {{ torneo.fase_actual|default:"—" }}
                             </div>
-                            <div class="small text-muted">Estado</div>
+                            <div class="small text-muted">Fase actual</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="card border-0 shadow-sm text-center py-3">
-                            <div class="fw-bold fs-5 text-dark">
-                                {{ torneo.fecha_inicio|date:"d/m/Y" }}<br>
-                                <small class="text-muted fw-normal">al {{ torneo.fecha_fin|date:"d/m/Y" }}</small>
+                            <div class="fw-bold fs-4 text-dark">
+                                {{ partidos_finalizados|default:0 }}/{{ torneo.partidos.count }}
                             </div>
-                            <div class="small text-muted">Fechas</div>
+                            <div class="small text-muted">Partidos finalizados</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="row g-4">
 
-                    <!-- COLUMNA IZQUIERDA: Tabla + Equipos -->
-                    <div class="col-12 col-lg-5">
+                    <!-- COLUMNA IZQUIERDA -->
+                    <div class="col-12 col-lg-4">
 
                         <!-- Tabla de posiciones -->
                         <div class="card shadow-sm border-0 mb-4">
@@ -133,88 +151,85 @@
                                     <table class="table table-sm mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>#</th>
+                                                <th style="width:30px;">#</th>
                                                 <th>Equipo</th>
+                                                <th class="text-center" title="Puntos">Pts</th>
                                                 <th class="text-center" title="Partidos jugados">PJ</th>
                                                 <th class="text-center" title="Ganados">G</th>
                                                 <th class="text-center" title="Empatados">E</th>
                                                 <th class="text-center" title="Perdidos">P</th>
                                                 <th class="text-center" title="Diferencia de gol">DG</th>
-                                                <th class="text-center fw-bold" title="Puntos">Pts</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for fila in tabla %}
                                             <tr class="{% if forloop.counter == 1 %}pos-1{% elif forloop.counter == 2 %}pos-2{% elif forloop.counter == 3 %}pos-3{% endif %}">
-                                                <td>
-                                                    {% if forloop.counter == 1 %}<span class="medal">🥇</span>
-                                                    {% elif forloop.counter == 2 %}<span class="medal">🥈</span>
-                                                    {% elif forloop.counter == 3 %}<span class="medal">🥉</span>
+                                                <td class="text-center">
+                                                    {% if forloop.counter == 1 %}🥇
+                                                    {% elif forloop.counter == 2 %}🥈
+                                                    {% elif forloop.counter == 3 %}🥉
                                                     {% else %}{{ forloop.counter }}{% endif %}
                                                 </td>
-                                                <td class="fw-semibold" style="font-size:.85rem;">{{ fila.equipo.nombre }}</td>
+                                                <td style="font-size:.82rem;" class="fw-semibold">{{ fila.equipo.nombre }}</td>
+                                                <td class="text-center fw-bold">{{ fila.pts }}</td>
                                                 <td class="text-center">{{ fila.pj }}</td>
                                                 <td class="text-center text-success">{{ fila.pg }}</td>
-                                                <td class="text-center text-warning">{{ fila.pe }}</td>
+                                                <td class="text-center">{{ fila.pe }}</td>
                                                 <td class="text-center text-danger">{{ fila.pp }}</td>
-                                                <td class="text-center">
-                                                    {% if fila.dg > 0 %}+{{ fila.dg }}{% else %}{{ fila.dg }}{% endif %}
-                                                </td>
-                                                <td class="text-center fw-bold">{{ fila.pts }}</td>
+                                                <td class="text-center">{% if fila.dg > 0 %}+{% endif %}{{ fila.dg }}</td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
                                 {% else %}
-                                <div class="text-center text-muted py-3 small">
-                                    <i class="fas fa-info-circle me-1"></i>No hay partidos finalizados aún.
-                                </div>
+                                <div class="text-center text-muted py-3 small">Sin resultados aún.</div>
                                 {% endif %}
                             </div>
                         </div>
 
                         <!-- Equipos inscritos -->
                         <div class="card shadow-sm border-0">
-                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                                <span><i class="fas fa-users me-2"></i>Equipos inscritos ({{ inscritos.count }})</span>
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-users me-2"></i>Equipos inscritos ({{ inscritos.count }})
                             </div>
                             <div class="card-body p-0">
                                 <ul class="list-group list-group-flush">
-                                    {% for inscripcion in inscritos %}
+                                    {% for insc in inscritos %}
                                     <li class="list-group-item d-flex justify-content-between align-items-center py-2">
                                         <div>
-                                            <span class="fw-semibold" style="font-size:.9rem;">{{ inscripcion.equipo.nombre }}</span><br>
-                                            <small class="text-muted">{{ inscripcion.equipo.entrenador.nombres }} {{ inscripcion.equipo.entrenador.apellidos }}</small>
+                                            <span class="fw-semibold" style="font-size:.88rem;">{{ insc.equipo.nombre }}</span><br>
+                                            <small class="text-muted">{{ insc.equipo.entrenador.nombres }} {{ insc.equipo.entrenador.apellidos }}</small>
                                         </div>
-                                        <form method="POST" action="{% url 'torneos:admin_desinscribir' inscripcion.id %}" style="display:inline;">
+                                        <form method="POST" action="{% url 'torneos:admin_desinscribir' insc.id %}">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-outline-danger btn-sm"
-                                                    onclick="return confirm('¿Desinscribir {{ inscripcion.equipo.nombre }}?')"
-                                                    title="Desinscribir">
+                                                onclick="return confirm('¿Desinscribir {{ insc.equipo.nombre }}?')" title="Desinscribir">
                                                 <i class="fas fa-user-times"></i>
                                             </button>
                                         </form>
                                     </li>
                                     {% empty %}
-                                    <li class="list-group-item text-muted text-center small py-3">No hay equipos inscritos.</li>
+                                    <li class="list-group-item text-muted text-center small py-3">Sin equipos inscritos.</li>
                                     {% endfor %}
                                 </ul>
                             </div>
                         </div>
                     </div>
 
-                    <!-- COLUMNA DERECHA: Partidos -->
-                    <div class="col-12 col-lg-7">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <span><i class="fas fa-futbol me-2"></i>Partidos</span>
-                                <div class="d-flex gap-2">
-                                    {% if not torneo.partidos.exists and inscritos.count >= 2 %}
+                    <!-- COLUMNA DERECHA: Fases -->
+                    <div class="col-12 col-lg-8">
+
+                        <!-- ── FASE DE GRUPOS ── -->
+                        <div class="card shadow-sm border-0 mb-4">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <span><i class="fas fa-layer-group me-2"></i>Fase de grupos</span>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    {% if puede_fixture_grupos %}
                                     <form method="POST" action="{% url 'torneos:admin_generar_fixture' torneo.id %}">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-warning btn-sm fw-semibold"
-                                            onclick="return confirm('¿Generar fixture automático (todos contra todos)? Esto creará todos los partidos.')">
+                                            onclick="return confirm('¿Generar el fixture de grupos (todos contra todos)? Se crearán todos los partidos automáticamente.')">
                                             <i class="fas fa-magic me-1"></i>Generar fixture
                                         </button>
                                     </form>
@@ -224,57 +239,230 @@
                                     </a>
                                 </div>
                             </div>
-                            <div class="card-body p-0">
-                                {% if partidos %}
-                                {% regroup partidos by jornada as jornadas %}
+                            <div class="card-body py-2">
+                                {% if partidos_grupos %}
+                                {% regroup partidos_grupos by jornada as jornadas %}
                                 {% for jornada in jornadas %}
-                                <div class="px-3 pt-3">
-                                    <p class="text-muted small fw-semibold text-uppercase mb-2" style="letter-spacing:.06em;">
-                                        Jornada {{ jornada.grouper }}
-                                    </p>
-                                </div>
+                                <p class="fase-header mt-2">Jornada {{ jornada.grouper }}</p>
                                 {% for partido in jornada.list %}
-                                <div class="border-bottom px-3 py-2 d-flex align-items-center gap-2 flex-wrap">
+                                <div class="partido-row d-flex align-items-center gap-2">
                                     <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center gap-2 justify-content-between" style="font-size:.9rem;">
+                                        <div class="d-flex align-items-center justify-content-between gap-2" style="font-size:.88rem;">
                                             <span class="fw-semibold text-end" style="flex:1;">{{ partido.equipo_local.nombre }}</span>
-                                            <span class="badge bg-light text-dark border px-2 py-1 fw-bold" style="min-width:60px;text-align:center;">
-                                                {% if partido.estado == 'FINALIZADO' %}
-                                                    {{ partido.goles_local }} - {{ partido.goles_visita }}
-                                                {% else %}
-                                                    vs
-                                                {% endif %}
+                                            <span class="score-badge">
+                                                {% if partido.estado == 'FINALIZADO' %}{{ partido.goles_local }}-{{ partido.goles_visita }}
+                                                {% else %}vs{% endif %}
                                             </span>
                                             <span class="fw-semibold" style="flex:1;">{{ partido.equipo_visita.nombre }}</span>
                                         </div>
-                                        <div class="text-muted small mt-1">
+                                        <div class="text-muted" style="font-size:.76rem;margin-top:3px;">
                                             <i class="fas fa-calendar me-1"></i>{{ partido.fecha|date:"d/m/Y H:i" }}
-                                            {% if partido.ubicacion %} &bull; <i class="fas fa-map-marker-alt me-1"></i>{{ partido.ubicacion }}{% endif %}
+                                            {% if partido.ubicacion %}&bull; {{ partido.ubicacion }}{% endif %}
                                         </div>
                                     </div>
-                                    <div class="d-flex gap-1 align-items-center">
-                                        {% if partido.estado == 'PROGRAMADO' %}<span class="badge bg-secondary">Programado</span>
-                                        {% elif partido.estado == 'EN_JUEGO' %}<span class="badge bg-success">En juego</span>
-                                        {% elif partido.estado == 'FINALIZADO' %}<span class="badge bg-primary">Finalizado</span>
-                                        {% else %}<span class="badge bg-danger">Suspendido</span>{% endif %}
-                                        <a href="{% url 'torneos:admin_editar_partido' partido.id %}" class="btn btn-outline-warning btn-sm" title="Editar resultado">
-                                            <i class="fas fa-edit"></i>
+                                    <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                                        {% if partido.estado == 'PROGRAMADO' %}<span class="badge bg-secondary" style="font-size:.7rem;">Prog.</span>
+                                        {% elif partido.estado == 'EN_JUEGO' %}<span class="badge bg-success" style="font-size:.7rem;">En juego</span>
+                                        {% elif partido.estado == 'FINALIZADO' %}<span class="badge bg-primary" style="font-size:.7rem;">Fin.</span>
+                                        {% else %}<span class="badge bg-danger" style="font-size:.7rem;">Susp.</span>{% endif %}
+                                        <a href="{% url 'torneos:admin_editar_partido' partido.id %}" class="btn btn-outline-warning btn-sm py-0 px-2">
+                                            <i class="fas fa-edit" style="font-size:.75rem;"></i>
                                         </a>
                                     </div>
                                 </div>
                                 {% endfor %}
                                 {% endfor %}
                                 {% else %}
-                                <div class="text-center text-muted py-4">
-                                    <i class="fas fa-futbol fa-2x mb-2 d-block text-muted"></i>
-                                    <span class="small">No hay partidos creados.</span><br>
-                                    <span class="small">Usa "Generar fixture" o agrega partidos manualmente.</span>
+                                <div class="text-center text-muted py-3 small">
+                                    <i class="fas fa-futbol me-1"></i>Sin partidos. Usa "Generar fixture" o agrégalos manualmente.
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
 
+                        <!-- ── CUARTOS DE FINAL ── -->
+                        {% if torneo.formato == 'GRUPOS_CUARTOS' %}
+                        <div class="card shadow-sm border-0 mb-4">
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-th me-2"></i>Cuartos de final</span>
+                                {% if puede_avanzar_cuartos %}
+                                <form method="POST" action="{% url 'torneos:admin_generar_cuartos' torneo.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-warning btn-sm fw-semibold"
+                                        onclick="return confirm('¿Generar los cuartos de final con los 8 primeros de la tabla?')">
+                                        <i class="fas fa-arrow-right me-1"></i>Generar cuartos
+                                    </button>
+                                </form>
+                                {% elif not partidos_cuartos %}
+                                <span class="badge bg-light text-dark small">Disponible al finalizar grupos</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body py-2">
+                                {% if partidos_cuartos %}
+                                {% for partido in partidos_cuartos %}
+                                <div class="partido-row d-flex align-items-center gap-2">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between gap-2" style="font-size:.88rem;">
+                                            <span class="fw-semibold text-end" style="flex:1;">{{ partido.equipo_local.nombre }}</span>
+                                            <span class="score-badge">
+                                                {% if partido.estado == 'FINALIZADO' %}{{ partido.goles_local }}-{{ partido.goles_visita }}
+                                                {% else %}vs{% endif %}
+                                            </span>
+                                            <span class="fw-semibold" style="flex:1;">{{ partido.equipo_visita.nombre }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                                        {% if partido.estado == 'FINALIZADO' %}<span class="badge bg-primary" style="font-size:.7rem;">Fin.</span>
+                                        {% else %}<span class="badge bg-secondary" style="font-size:.7rem;">Prog.</span>{% endif %}
+                                        <a href="{% url 'torneos:admin_editar_partido' partido.id %}" class="btn btn-outline-warning btn-sm py-0 px-2">
+                                            <i class="fas fa-edit" style="font-size:.75rem;"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <div class="text-center text-muted py-3 small">Pendiente de generación.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- ── SEMIFINALES ── -->
+                        {% if torneo.formato in 'GRUPOS_SEMI,GRUPOS_CUARTOS' %}
+                        <div class="card shadow-sm border-0 mb-4">
+                            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#6f42c1;">
+                                <span><i class="fas fa-star-half-alt me-2"></i>Semifinales</span>
+                                {% if puede_avanzar_semi %}
+                                <form method="POST" action="{% url 'torneos:admin_generar_semifinales' torneo.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-warning btn-sm fw-semibold"
+                                        onclick="return confirm('¿Generar las semifinales?')">
+                                        <i class="fas fa-arrow-right me-1"></i>Generar semifinales
+                                    </button>
+                                </form>
+                                {% elif not partidos_semi %}
+                                <span class="badge bg-light text-dark small">Disponible al finalizar fase anterior</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body py-2">
+                                {% if partidos_semi %}
+                                {% for partido in partidos_semi %}
+                                <div class="partido-row d-flex align-items-center gap-2">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between gap-2" style="font-size:.88rem;">
+                                            <span class="fw-semibold text-end" style="flex:1;">{{ partido.equipo_local.nombre }}</span>
+                                            <span class="score-badge">
+                                                {% if partido.estado == 'FINALIZADO' %}{{ partido.goles_local }}-{{ partido.goles_visita }}
+                                                {% else %}vs{% endif %}
+                                            </span>
+                                            <span class="fw-semibold" style="flex:1;">{{ partido.equipo_visita.nombre }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                                        {% if partido.estado == 'FINALIZADO' %}<span class="badge bg-primary" style="font-size:.7rem;">Fin.</span>
+                                        {% else %}<span class="badge bg-secondary" style="font-size:.7rem;">Prog.</span>{% endif %}
+                                        <a href="{% url 'torneos:admin_editar_partido' partido.id %}" class="btn btn-outline-warning btn-sm py-0 px-2">
+                                            <i class="fas fa-edit" style="font-size:.75rem;"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <div class="text-center text-muted py-3 small">Pendiente de generación.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- ── TERCER PUESTO ── -->
+                        {% if partidos_tercero %}
+                        <div class="card shadow-sm border-0 mb-4">
+                            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#fd7e14;">
+                                <span><i class="fas fa-medal me-2"></i>Tercer puesto</span>
+                            </div>
+                            <div class="card-body py-2">
+                                {% for partido in partidos_tercero %}
+                                <div class="partido-row d-flex align-items-center gap-2">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between gap-2" style="font-size:.88rem;">
+                                            <span class="fw-semibold text-end" style="flex:1;">{{ partido.equipo_local.nombre }}</span>
+                                            <span class="score-badge">
+                                                {% if partido.estado == 'FINALIZADO' %}{{ partido.goles_local }}-{{ partido.goles_visita }}
+                                                {% else %}vs{% endif %}
+                                            </span>
+                                            <span class="fw-semibold" style="flex:1;">{{ partido.equipo_visita.nombre }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                                        {% if partido.estado == 'FINALIZADO' %}<span class="badge bg-primary" style="font-size:.7rem;">Fin.</span>
+                                        {% else %}<span class="badge bg-secondary" style="font-size:.7rem;">Prog.</span>{% endif %}
+                                        <a href="{% url 'torneos:admin_editar_partido' partido.id %}" class="btn btn-outline-warning btn-sm py-0 px-2">
+                                            <i class="fas fa-edit" style="font-size:.75rem;"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- ── FINAL ── -->
+                        {% if torneo.formato != 'GRUPOS_SOLO' %}
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header text-white d-flex justify-content-between align-items-center" style="background:#dc3545;">
+                                <span><i class="fas fa-trophy me-2"></i>Final</span>
+                                {% if puede_avanzar_final %}
+                                <form method="POST" action="{% url 'torneos:admin_generar_final' torneo.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-warning btn-sm fw-semibold"
+                                        onclick="return confirm('¿Generar la final y el partido por el tercer puesto?')">
+                                        <i class="fas fa-trophy me-1"></i>Generar final
+                                    </button>
+                                </form>
+                                {% elif not partidos_final %}
+                                <span class="badge bg-light text-dark small">Disponible al finalizar fase anterior</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body py-2">
+                                {% if partidos_final %}
+                                {% for partido in partidos_final %}
+                                <div class="partido-row d-flex align-items-center gap-2">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between gap-2" style="font-size:.95rem;">
+                                            <span class="fw-bold text-end" style="flex:1;">{{ partido.equipo_local.nombre }}</span>
+                                            <span class="score-badge" style="font-size:1rem;">
+                                                {% if partido.estado == 'FINALIZADO' %}{{ partido.goles_local }}-{{ partido.goles_visita }}
+                                                {% else %}vs{% endif %}
+                                            </span>
+                                            <span class="fw-bold" style="flex:1;">{{ partido.equipo_visita.nombre }}</span>
+                                        </div>
+                                        {% if partido.estado == 'FINALIZADO' %}
+                                        <div class="text-center mt-2">
+                                            {% if partido.goles_local > partido.goles_visita %}
+                                            <span class="badge bg-warning text-dark fs-6">🏆 Campeón: {{ partido.equipo_local.nombre }}</span>
+                                            {% elif partido.goles_visita > partido.goles_local %}
+                                            <span class="badge bg-warning text-dark fs-6">🏆 Campeón: {{ partido.equipo_visita.nombre }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                                        {% if partido.estado == 'FINALIZADO' %}<span class="badge bg-primary">Fin.</span>
+                                        {% else %}<span class="badge bg-secondary">Prog.</span>{% endif %}
+                                        <a href="{% url 'torneos:admin_editar_partido' partido.id %}" class="btn btn-outline-warning btn-sm py-0 px-2">
+                                            <i class="fas fa-edit" style="font-size:.75rem;"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <div class="text-center text-muted py-3 small">Pendiente de generación.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    </div>
                 </div>
             </div>
         </div>

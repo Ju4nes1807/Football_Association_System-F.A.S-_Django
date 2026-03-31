@@ -71,6 +71,16 @@
                                         <div class="text-danger">{{ form.categoria.errors }}</div>
                                     {% endif %}
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><i class="fas fa-sitemap"></i> Formato del torneo</label>
+                                    {{ form.formato }}
+                                    {% if form.formato.errors %}
+                                        <div class="text-danger">{{ form.formato.errors }}</div>
+                                    {% endif %}
+                                    <small class="text-muted">
+                                        Define si habrá eliminatorias después de la fase de grupos.
+                                    </small>
+                                </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label"><i class="fas fa-users"></i> Cupo Máximo *</label>
                                     {{ form.cupo_maximo }}

@@ -21,6 +21,12 @@ class Torneo(models.Model):
         SUB18 = 'SUB18', 'Sub-18'
         MAYOR = 'MAYOR', 'Mayor/Libre'
 
+    class Formato(models.TextChoices):
+        GRUPOS_SOLO    = 'GRUPOS_SOLO',    'Solo fase de grupos (liga)'
+        GRUPOS_FINAL   = 'GRUPOS_FINAL',   'Grupos + Final'
+        GRUPOS_SEMI    = 'GRUPOS_SEMI',    'Grupos + Semifinales + Final'
+        GRUPOS_CUARTOS = 'GRUPOS_CUARTOS', 'Grupos + Cuartos + Semifinales + Final'
+
     nombre         = models.CharField(max_length=100)
     descripcion    = models.TextField(blank=True)
     fecha_inicio   = models.DateField()
@@ -33,6 +39,25 @@ class Torneo(models.Model):
         choices=Estado.choices,
         default=Estado.PROXIMO
     )
+
+    formato = models.CharField(
+        max_length=20,
+        choices=Formato.choices,
+        default=Formato.GRUPOS_SOLO
+    )
+    fase_actual = models.CharField(
+        max_length=15,
+        choices=[
+            ('GRUPOS',      'Fase de grupos'),
+            ('CUARTOS',     'Cuartos de final'),
+            ('SEMIFINAL',   'Semifinal'),
+            ('TERCER_PUES', 'Tercer puesto'),
+            ('FINAL',       'Final'),
+        ],
+        default='GRUPOS',
+        blank=True
+    )
+
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -49,23 +74,25 @@ class Torneo(models.Model):
         )
 
     def actualizar_estado(self):
-        """Actualiza el estado del torneo según las fechas actuales."""
-        hoy = date.today()
         if self.estado == self.Estado.CANCELADO:
             return
+
+        hoy = date.today()
+
         if hoy < self.fecha_inicio:
             nuevo = self.Estado.PROXIMO
         elif self.fecha_inicio <= hoy <= self.fecha_fin:
             nuevo = self.Estado.EN_CURSO
         else:
-            # Fecha fin pasada — verificar si todos los partidos terminaron
             partidos = self.partidos.all()
-            if partidos.exists() and partidos.exclude(estado='FINALIZADO').exclude(estado='SUSPENDIDO').count() == 0:
-                nuevo = self.Estado.FINALIZADO
-            elif not partidos.exists():
+            pendientes = partidos.exclude(
+                estado__in=['FINALIZADO', 'SUSPENDIDO']
+            ).count()
+            if not partidos.exists() or pendientes == 0:
                 nuevo = self.Estado.FINALIZADO
             else:
                 nuevo = self.Estado.EN_CURSO
+
         if self.estado != nuevo:
             self.estado = nuevo
             self.save(update_fields=['estado'])
@@ -108,43 +135,54 @@ class InscripcionTorneo(models.Model):
 class Partido(models.Model):
 
     class Estado(models.TextChoices):
-        PROGRAMADO = 'PROGRAMADO',  'Programado'
-        EN_JUEGO   = 'EN_JUEGO',    'En juego'
-        FINALIZADO = 'FINALIZADO',  'Finalizado'
-        SUSPENDIDO = 'SUSPENDIDO',  'Suspendido'
+        PROGRAMADO = 'PROGRAMADO', 'Programado'
+        EN_JUEGO   = 'EN_JUEGO',   'En juego'
+        FINALIZADO = 'FINALIZADO', 'Finalizado'
+        SUSPENDIDO = 'SUSPENDIDO', 'Suspendido'
+
+    class Fase(models.TextChoices):
+        GRUPOS      = 'GRUPOS',      'Fase de grupos'
+        CUARTOS     = 'CUARTOS',     'Cuartos de final'
+        SEMIFINAL   = 'SEMIFINAL',   'Semifinal'
+        TERCER_PUES = 'TERCER_PUES', 'Tercer puesto'
+        FINAL       = 'FINAL',       'Final'
 
     torneo        = models.ForeignKey(
         Torneo, on_delete=models.CASCADE, related_name='partidos'
     )
     equipo_local  = models.ForeignKey(
-        Equipo, on_delete=models.CASCADE, related_name='partidos_local'
+        Equipo, on_delete=models.CASCADE,
+        related_name='partidos_local', null=True, blank=True
     )
     equipo_visita = models.ForeignKey(
-        Equipo, on_delete=models.CASCADE, related_name='partidos_visita'
+        Equipo, on_delete=models.CASCADE,
+        related_name='partidos_visita', null=True, blank=True
+    )
+    fase          = models.CharField(
+        max_length=15, choices=Fase.choices, default=Fase.GRUPOS
     )
     fecha         = models.DateTimeField()
     ubicacion     = models.CharField(max_length=200, blank=True)
     goles_local   = models.PositiveIntegerField(default=0)
     goles_visita  = models.PositiveIntegerField(default=0)
     estado        = models.CharField(
-        max_length=15,
-        choices=Estado.choices,
-        default=Estado.PROGRAMADO
+        max_length=15, choices=Estado.choices, default=Estado.PROGRAMADO
     )
     jornada       = models.PositiveIntegerField(default=1)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Al guardar un partido, actualizar el estado del torneo
         self.torneo.actualizar_estado()
 
     def __str__(self):
-        return f'{self.equipo_local} vs {self.equipo_visita} — {self.torneo}'
+        local  = self.equipo_local.nombre  if self.equipo_local  else 'Por definir'
+        visita = self.equipo_visita.nombre if self.equipo_visita else 'Por definir'
+        return f'{local} vs {visita} — {self.torneo} ({self.get_fase_display()})'
 
     class Meta:
         verbose_name = 'Partido'
         verbose_name_plural = 'Partidos'
-        ordering = ['fecha']
+        ordering = ['fase', 'jornada', 'fecha']
 
 
 class EstadisticaJugador(models.Model):

@@ -1,5 +1,4 @@
 from django import forms
-from datetime import date
 from django.db.models import Q
 from .models import Torneo, Partido, EstadisticaJugador
 
@@ -9,7 +8,7 @@ class TorneoForm(forms.ModelForm):
         model = Torneo
         fields = [
             'nombre', 'descripcion', 'fecha_inicio', 'fecha_fin',
-            'cupo_maximo', 'categoria', 'ubicacion', 'estado'
+            'cupo_maximo', 'categoria', 'formato', 'ubicacion', 'estado'
         ]
         widgets = {
             'nombre':       forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del torneo'}),
@@ -18,6 +17,7 @@ class TorneoForm(forms.ModelForm):
             'fecha_fin':    forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'cupo_maximo':  forms.NumberInput(attrs={'class': 'form-control', 'min': 2}),
             'categoria':    forms.Select(attrs={'class': 'form-select'}),
+            'formato':      forms.Select(attrs={'class': 'form-select'}),
             'ubicacion':    forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Parque El Salitre, Bogotá'}),
             'estado':       forms.Select(attrs={'class': 'form-select'}),
         }
@@ -35,12 +35,13 @@ class PartidoForm(forms.ModelForm):
     class Meta:
         model = Partido
         fields = [
-            'equipo_local', 'equipo_visita', 'fecha',
+            'equipo_local', 'equipo_visita', 'fase', 'fecha',
             'ubicacion', 'goles_local', 'goles_visita', 'estado', 'jornada'
         ]
         widgets = {
             'equipo_local':  forms.Select(attrs={'class': 'form-select'}),
             'equipo_visita': forms.Select(attrs={'class': 'form-select'}),
+            'fase':          forms.Select(attrs={'class': 'form-select'}),
             'fecha':         forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'ubicacion':     forms.TextInput(attrs={'class': 'form-control'}),
             'goles_local':   forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
@@ -60,38 +61,39 @@ class PartidoForm(forms.ModelForm):
             qs = Equipo.objects.filter(id__in=equipos_ids)
             self.fields['equipo_local'].queryset  = qs
             self.fields['equipo_visita'].queryset = qs
+            self.fields['equipo_local'].required  = False
+            self.fields['equipo_visita'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
-        local  = cleaned_data.get('equipo_local')
-        visita = cleaned_data.get('equipo_visita')
-        fecha  = cleaned_data.get('fecha')
+        local   = cleaned_data.get('equipo_local')
+        visita  = cleaned_data.get('equipo_visita')
+        fecha   = cleaned_data.get('fecha')
         jornada = cleaned_data.get('jornada')
+        fase    = cleaned_data.get('fase')
 
-        # Equipos distintos
         if local and visita and local == visita:
             raise forms.ValidationError(
                 'El equipo local y el equipo visitante no pueden ser el mismo.'
             )
 
-        # Fecha dentro del rango del torneo
         if self.torneo and fecha:
             fecha_solo = fecha.date() if hasattr(fecha, 'date') else fecha
             if fecha_solo < self.torneo.fecha_inicio or fecha_solo > self.torneo.fecha_fin:
                 raise forms.ValidationError(
-                    f'La fecha del partido debe estar entre '
+                    f'La fecha debe estar entre '
                     f'{self.torneo.fecha_inicio.strftime("%d/%m/%Y")} y '
                     f'{self.torneo.fecha_fin.strftime("%d/%m/%Y")}.'
                 )
 
-        # No repetir el mismo par de equipos en la misma jornada
-        if self.torneo and local and visita and jornada:
+        if self.torneo and local and visita and jornada and fase == 'GRUPOS':
             qs = Partido.objects.filter(
                 torneo=self.torneo,
+                fase='GRUPOS',
                 jornada=jornada,
             ).filter(
-                models.Q(equipo_local=local, equipo_visita=visita) |
-                models.Q(equipo_local=visita, equipo_visita=local)
+                Q(equipo_local=local, equipo_visita=visita) |
+                Q(equipo_local=visita, equipo_visita=local)
             )
             if self.instance and self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
@@ -111,11 +113,11 @@ class EstadisticaForm(forms.ModelForm):
             'tarjetas_amarillas', 'tarjetas_rojas', 'minutos_jugados'
         ]
         widgets = {
-            'jugador':             forms.Select(attrs={'class': 'form-select'}),
-            'equipo':              forms.Select(attrs={'class': 'form-select'}),
-            'goles':               forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
-            'asistencias':         forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
-            'tarjetas_amarillas':  forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
-            'tarjetas_rojas':      forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
-            'minutos_jugados':     forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'jugador':            forms.Select(attrs={'class': 'form-select'}),
+            'equipo':             forms.Select(attrs={'class': 'form-select'}),
+            'goles':              forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'asistencias':        forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'tarjetas_amarillas': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'tarjetas_rojas':     forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'minutos_jugados':    forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
         }
