@@ -156,6 +156,8 @@ class Cancha(models.Model):
     _capacidad_espectadores = models.PositiveIntegerField(default=0, db_column='capacidad_espectadores')
     _observaciones_tecnicas = models.TextField(blank=True, null=True, db_column='observaciones_tecnicas')
     _disponibilidad       = models.CharField(max_length=20, choices=Disponibilidad.choices, default=Disponibilidad.DISPONIBLE, db_column='disponibilidad')
+    _latitud = models.FloatField(null = True, blank = True)
+    _longitud = models.FloatField(null = True, blank = True)
     fecha_registro        = models.DateTimeField(auto_now_add=True)
 
     # ── Getters y Setters ──
@@ -264,6 +266,18 @@ class Cancha(models.Model):
         if value not in [d[0] for d in self.Disponibilidad.choices]:
             raise ValueError('Disponibilidad inválida.')
         self._disponibilidad = value
+    
+    @property
+    def latitud(self):
+        return self._latitud
+    @latitud.setter
+    def latitud(self, v):
+        self._latitud = v
+    
+    @property
+    def longitud(self): return self._longitud
+    @longitud.setter
+    def longitud(self, v): self._longitud = v
 
     # Propiedades para templates
     @property

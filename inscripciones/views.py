@@ -1,3 +1,5 @@
+import json
+
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -11,12 +13,12 @@ from .models import Equipo, Cancha
 from .forms import RegistroEquipoForm, EditarEquipoForm, RegistroJugadorForm, CargaMasivaJugadoresForm, EditarJugadorEntrenadorForm, EditarPerfilJugadorForm, CanchaForm, CargaMasivaCanchasForm
 import csv
 import io
-from datetime import date, datetime
+from datetime import date, datetime, time
 import openpyxl
 from django.contrib.auth.hashers import make_password
 from accounts.models import Usuario, Jugador
 from django.contrib.auth import update_session_auth_hash
-from .utils import validar_edad_categoria, _enviar_credenciales_jugador
+from .utils import validar_edad_categoria, _enviar_credenciales_jugador, geodificar_direccion
 
 def _get_equipo_entrenador(user):
     """Retorna el equipo del entrenador o None."""
@@ -858,6 +860,25 @@ def lista_canchas(request):
     page      = request.GET.get('page')
     canchas   = paginator.get_page(page)
 
+    canchas_mapa = Cancha.objects.filter(
+        _latitud__isnull=False,
+        _longitud__isnull=False
+    ).values('_nombre_escenario', '_direccion_exacta', '_localidad',
+             '_tipo_disciplina', '_disponibilidad', '_latitud', '_longitud', 'id')
+
+    canchas_json = json.dumps([
+        {
+            'id':         c['id'],
+            'nombre':     c['_nombre_escenario'],
+            'direccion':  c['_direccion_exacta'],
+            'localidad':  c['_localidad'],
+            'disciplina': c['_tipo_disciplina'],
+            'lat':        c['_latitud'],
+            'lng':        c['_longitud'],
+        }
+        for c in canchas_mapa
+    ])
+
     return render(request, 'inscripciones/canchas/lista_canchas.html', {
         'canchas':        canchas,
         'total': paginator.count,
@@ -867,6 +888,7 @@ def lista_canchas(request):
         'disponibilidad': disponibilidad,
         'disciplinas':    Cancha.TipoDisciplina.choices,
         'disponibilidades': Cancha.Disponibilidad.choices,
+        'canchas_json': canchas_json,
     })
 
 
@@ -897,6 +919,9 @@ def crear_cancha(request):
                 cancha.tiene_cerramiento      = data.get('tiene_cerramiento', False)
                 cancha.capacidad_espectadores = data['capacidad_espectadores']
                 cancha.observaciones_tecnicas = data.get('observaciones_tecnicas')
+                lat, lng = geodificar_direccion(cancha.direccion_exacta)
+                cancha.latitud = lat
+                cancha.longitud = lng
                 cancha.save()
                 messages.success(request, f'Cancha "{cancha.nombre_escenario}" registrada correctamente.')
                 return redirect('inscripciones:lista_canchas')
@@ -955,6 +980,9 @@ def editar_cancha(request, cancha_id):
                 cancha.tiene_cerramiento      = data.get('tiene_cerramiento', False)
                 cancha.capacidad_espectadores = data['capacidad_espectadores']
                 cancha.observaciones_tecnicas = data.get('observaciones_tecnicas')
+                lat, lng = geodificar_direccion(cancha.direccion_exacta)
+                cancha.latitud = lat
+                cancha.longitud = lng
                 cancha.save()
                 messages.success(request, 'Cancha actualizada correctamente.')
                 return redirect('inscripciones:lista_canchas')
@@ -1126,7 +1154,11 @@ def _procesar_fila_cancha(fila, num_fila):
         cancha.tiene_cerramiento      = tiene_cerramiento
         cancha.capacidad_espectadores = int(float(capacidad_str)) if capacidad_str else 0
         cancha.observaciones_tecnicas = observaciones or None
+        lat, lng = geodificar_direccion(cancha.direccion_exacta)
+        cancha.latitud = lat
+        cancha.longitud = lng
         cancha.save()
+        time.sleep(1)
 
         return {'ok': True}
 
@@ -1154,10 +1186,22 @@ def lista_canchas_entrenador(request):
         canchas = canchas.filter(_localidad__icontains=localidad)
     if disciplina:
         canchas = canchas.filter(_tipo_disciplina=disciplina)
+    
+    todas_canchas = canchas
 
     paginator = Paginator(canchas, 12)  # ← mayúscula
     page      = request.GET.get('page')
     canchas   = paginator.get_page(page)
+
+    canchas_json = []
+    for c in todas_canchas:  
+        if c._latitud and c._longitud:
+            canchas_json.append({
+                "nombre": c._nombre_escenario,
+                "direccion": c._direccion_exacta,
+                "lat": c._latitud,
+                "lng": c._longitud,
+            })
 
     return render(request, 'inscripciones/canchas/lista_canchas_entrenador.html', {
         'canchas':     canchas,
@@ -1166,4 +1210,5 @@ def lista_canchas_entrenador(request):
         'localidad':   localidad,
         'disciplina':  disciplina,
         'disciplinas': Cancha.TipoDisciplina.choices,
+        'canchas_json': json.dumps(canchas_json),
     })

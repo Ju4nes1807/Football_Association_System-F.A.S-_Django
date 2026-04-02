@@ -1,6 +1,7 @@
 from datetime import date
 from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse
+import requests
 from django.conf import settings
 
 
@@ -210,3 +211,36 @@ Por seguridad, cambia tu contraseña después del primer inicio de sesión.
         msg.send()
     except Exception:
         pass
+  
+def geodificar_direccion(direccion):
+    try:
+        url = 'https://nominatim.openstreetmap.org/search'
+
+        query = f"{direccion}, Bogota, Colombia"
+
+        params = {
+            'q': query,
+            'format': 'json',
+            'limit': 1,
+            'addressdetails': 1
+        }
+
+        headers = {
+            'User-Agent': 'FAS-App-1.0 (tuemail@ejemplo.com)'  # IMPORTANTE
+        }
+
+        res = requests.get(url, params=params, headers=headers, timeout=10)
+
+        if res.status_code != 200:
+            print("Error HTTP:", res.status_code)
+            return None, None
+
+        data = res.json()
+
+        if data:
+            return float(data[0]['lat']), float(data[0]['lon'])
+
+    except Exception as e:
+        print("ERROR GEO:", e)
+
+    return None, None
