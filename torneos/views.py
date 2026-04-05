@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.db.models import Sum, Q
 from datetime import date
 
 from .models import Torneo, InscripcionTorneo, Partido, EstadisticaJugador
 from .forms import TorneoForm, PartidoForm, EstadisticaForm
 from inscripciones.models import Equipo
+from accounts.models import Jugador
 
 
 # ─────────────────────────────────────────────
@@ -109,6 +111,157 @@ def _fase_completa(torneo, fase):
     ).exists()
 
 
+def _sincronizar_torneos(qs):
+    torneos = list(qs)
+    for torneo in torneos:
+        torneo.actualizar_estado()
+    return torneos
+
+
+def _construir_indicador_rendimiento(jugador_obj):
+    rendimiento_vacio = {
+        'nivel': 'Sin datos',
+        'puntaje': 0,
+        'partidos_evaluados': 0,
+        'descripcion': 'Aún no hay suficientes estadísticas para calcular el nivel.',
+        'metricas': [
+            {'label': 'Definición', 'value': 0},
+            {'label': 'Creación', 'value': 0},
+            {'label': 'Ritmo', 'value': 0},
+            {'label': 'Disciplina', 'value': 0},
+        ],
+    }
+    if not jugador_obj:
+        return rendimiento_vacio
+
+    agg = EstadisticaJugador.objects.filter(jugador=jugador_obj).aggregate(
+        total_goles=Sum('goles'),
+        total_asistencias=Sum('asistencias'),
+        total_amarillas=Sum('tarjetas_amarillas'),
+        total_rojas=Sum('tarjetas_rojas'),
+        total_minutos=Sum('minutos_jugados'),
+    )
+
+    partidos = EstadisticaJugador.objects.filter(jugador=jugador_obj).count()
+    if partidos == 0:
+        return rendimiento_vacio
+
+    total_goles = agg['total_goles'] or 0
+    total_asistencias = agg['total_asistencias'] or 0
+    total_amarillas = agg['total_amarillas'] or 0
+    total_rojas = agg['total_rojas'] or 0
+    total_minutos = agg['total_minutos'] or 0
+
+    promedio_goles = total_goles / partidos
+    promedio_asistencias = total_asistencias / partidos
+    promedio_minutos = total_minutos / partidos
+    promedio_amarillas = total_amarillas / partidos
+    promedio_rojas = total_rojas / partidos
+
+    definicion = min(100, round(promedio_goles * 100))
+    creacion = min(100, round(promedio_asistencias * 100))
+    ritmo = min(100, round((promedio_minutos / 90) * 100))
+    disciplina = max(0, min(100, round(100 - ((promedio_amarillas * 18) + (promedio_rojas * 45)))))
+
+    puntaje = round((definicion * 0.35) + (creacion * 0.25) + (ritmo * 0.20) + (disciplina * 0.20))
+
+    if puntaje < 25:
+        nivel = 'Bajo'
+        descripcion = 'Tu impacto aún está por debajo del esperado. Sigue sumando minutos y participación.'
+    elif puntaje < 50:
+        nivel = 'Regular'
+        descripcion = 'Vas construyendo un rendimiento estable, pero todavía hay margen para crecer.'
+    elif puntaje < 75:
+        nivel = 'Promedio'
+        descripcion = 'Estás compitiendo en un buen nivel y aportando de forma constante al equipo.'
+    else:
+        nivel = 'Alto'
+        descripcion = 'Tu rendimiento es sobresaliente y estás marcando diferencia en el juego.'
+
+    return {
+        'nivel': nivel,
+        'puntaje': puntaje,
+        'partidos_evaluados': partidos,
+        'descripcion': descripcion,
+        'metricas': [
+            {'label': 'Definición', 'value': definicion},
+            {'label': 'Creación', 'value': creacion},
+            {'label': 'Ritmo', 'value': ritmo},
+            {'label': 'Disciplina', 'value': disciplina},
+        ],
+    }
+
+
+def _serializar_resumen_jugador(jugador_obj, equipo):
+    torneos_data = []
+    if equipo:
+        inscripciones = InscripcionTorneo.objects.filter(
+            equipo=equipo
+        ).select_related('torneo').order_by('-torneo__fecha_inicio')
+
+        for insc in inscripciones:
+            torneo = insc.torneo
+            torneo.actualizar_estado()
+            estado_label = 'Registrado' if torneo.estado == Torneo.Estado.PROXIMO else torneo.get_estado_display()
+
+            partidos_equipo = Partido.objects.filter(
+                torneo=torneo
+            ).filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo))
+
+            stats = EstadisticaJugador.objects.filter(
+                jugador=jugador_obj,
+                partido__torneo=torneo,
+            ).aggregate(
+                total_goles=Sum('goles'),
+                total_asistencias=Sum('asistencias'),
+                total_amarillas=Sum('tarjetas_amarillas'),
+                total_rojas=Sum('tarjetas_rojas'),
+                total_minutos=Sum('minutos_jugados'),
+            )
+
+            torneos_data.append({
+                'id': torneo.id,
+                'nombre': torneo.nombre,
+                'categoria': torneo.get_categoria_display(),
+                'estado': torneo.estado,
+                'estado_label': estado_label,
+                'fecha_inicio': torneo.fecha_inicio.strftime('%d/%m/%Y'),
+                'fecha_fin': torneo.fecha_fin.strftime('%d/%m/%Y'),
+                'ubicacion': torneo.ubicacion,
+                'partidos_jugados': partidos_equipo.filter(estado='FINALIZADO').count(),
+                'partidos_restantes': partidos_equipo.exclude(
+                    estado__in=['FINALIZADO', 'SUSPENDIDO']
+                ).count(),
+                'goles': stats['total_goles'] or 0,
+                'asistencias': stats['total_asistencias'] or 0,
+                'amarillas': stats['total_amarillas'] or 0,
+                'rojas': stats['total_rojas'] or 0,
+                'minutos': stats['total_minutos'] or 0,
+            })
+
+    totales = {
+        'total_goles': 0,
+        'total_asistencias': 0,
+        'total_rojas': 0,
+        'total_minutos': 0,
+    }
+    if jugador_obj:
+        agg = EstadisticaJugador.objects.filter(jugador=jugador_obj).aggregate(
+            total_goles=Sum('goles'),
+            total_asistencias=Sum('asistencias'),
+            total_rojas=Sum('tarjetas_rojas'),
+            total_minutos=Sum('minutos_jugados'),
+        )
+        totales = {k: v or 0 for k, v in agg.items()}
+
+    return {
+        'equipo': equipo,
+        'torneos_data': torneos_data,
+        'totales': totales,
+        'rendimiento': _construir_indicador_rendimiento(jugador_obj),
+    }
+
+
 # ─────────────────────────────────────────────
 #  ADMIN — TORNEOS
 # ─────────────────────────────────────────────
@@ -160,7 +313,8 @@ def admin_editar_torneo(request, torneo_id):
     form   = TorneoForm(request.POST or None, instance=torneo)
 
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        torneo = form.save()
+        torneo.actualizar_estado()
         messages.success(request, 'Torneo actualizado exitosamente.')
         return redirect('torneos:admin_lista_torneos')
 
@@ -561,20 +715,25 @@ def entrenador_lista_torneos(request):
     mis_inscripciones = []
     ids_inscritos     = []
     if equipo:
-        mis_inscripciones = InscripcionTorneo.objects.filter(
+        mis_inscripciones_qs = InscripcionTorneo.objects.filter(
             equipo=equipo, estado='ACTIVA'
         ).select_related('torneo')
-        ids_inscritos = list(mis_inscripciones.values_list('torneo_id', flat=True))
+        ids_inscritos = list(mis_inscripciones_qs.values_list('torneo_id', flat=True))
+        mis_inscripciones = list(mis_inscripciones_qs)
+        for inscripcion in mis_inscripciones:
+            inscripcion.torneo.actualizar_estado()
 
     torneos_qs = Torneo.objects.filter(
-        estado=Torneo.Estado.PROXIMO,
         cupo_maximo__gt=0,
     ).exclude(id__in=ids_inscritos)
 
     if equipo:
         torneos_qs = torneos_qs.filter(categoria=equipo.categoria)
 
-    torneos_disponibles = [t for t in torneos_qs if t.puede_inscribirse]
+    torneos_disponibles = [
+        t for t in _sincronizar_torneos(torneos_qs)
+        if t.puede_inscribirse
+    ]
 
     return render(request, 'torneos/entrenador/lista_torneos.html', {
         'torneos_disponibles': torneos_disponibles,
@@ -652,6 +811,7 @@ def entrenador_mis_partidos(request, torneo_id):
         return redirect('dashboard_admin')
 
     torneo = get_object_or_404(Torneo, id=torneo_id)
+    torneo.actualizar_estado()
     equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
 
     partidos = Partido.objects.filter(
@@ -673,6 +833,78 @@ def entrenador_mis_partidos(request, torneo_id):
     })
 
 
+@login_required
+def entrenador_estadisticas_partido(request, partido_id):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    partido = get_object_or_404(
+        Partido.objects.select_related(
+            'torneo', 'equipo_local', 'equipo_visita'
+        ),
+        id=partido_id
+    )
+    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+
+    if not equipo or equipo not in [partido.equipo_local, partido.equipo_visita]:
+        messages.error(request, 'No tienes permisos para gestionar este partido.')
+        return redirect('torneos:entrenador_lista_torneos')
+
+    jugadores = Jugador.objects.filter(equipo=equipo).order_by('_dorsal', '_nombres')
+    estadisticas_existentes = {
+        estadistica.jugador_id: estadistica
+        for estadistica in EstadisticaJugador.objects.filter(
+            partido=partido,
+            jugador__equipo=equipo
+        ).select_related('jugador')
+    }
+
+    if request.method == 'POST':
+        procesados = 0
+        for jugador in jugadores:
+            goles = int(request.POST.get(f'goles_{jugador.id}', 0) or 0)
+            asistencias = int(request.POST.get(f'asistencias_{jugador.id}', 0) or 0)
+            amarillas = int(request.POST.get(f'amarillas_{jugador.id}', 0) or 0)
+            rojas = int(request.POST.get(f'rojas_{jugador.id}', 0) or 0)
+            minutos = int(request.POST.get(f'minutos_{jugador.id}', 0) or 0)
+
+            estadistica, _ = EstadisticaJugador.objects.update_or_create(
+                partido=partido,
+                jugador=jugador,
+                defaults={
+                    'equipo': equipo,
+                    'goles': goles,
+                    'asistencias': asistencias,
+                    'tarjetas_amarillas': amarillas,
+                    'tarjetas_rojas': rojas,
+                    'minutos_jugados': minutos,
+                }
+            )
+            estadisticas_existentes[jugador.id] = estadistica
+            procesados += 1
+
+        messages.success(
+            request,
+            f'Se guardaron las estadísticas de {procesados} jugador(es).'
+        )
+        return redirect('torneos:entrenador_estadisticas_partido', partido_id=partido.id)
+
+    jugadores_con_stats = []
+    for jugador in jugadores:
+        estadistica = estadisticas_existentes.get(jugador.id)
+        jugadores_con_stats.append({
+            'jugador': jugador,
+            'estadistica': estadistica,
+        })
+
+    return render(request, 'torneos/entrenador/estadisticas_partido.html', {
+        'partido': partido,
+        'torneo': partido.torneo,
+        'equipo': equipo,
+        'jugadores_con_stats': jugadores_con_stats,
+    })
+
+
 # ─────────────────────────────────────────────
 #  JUGADOR
 # ─────────────────────────────────────────────
@@ -684,50 +916,28 @@ def jugador_mis_torneos(request):
 
     jugador_obj = getattr(request.user, 'jugador', None)
     equipo      = jugador_obj.equipo if jugador_obj else None
-
-    torneos_data = []
-    if equipo:
-        for insc in InscripcionTorneo.objects.filter(
-            equipo=equipo
-        ).select_related('torneo').order_by('-torneo__fecha_inicio'):
-            torneo = insc.torneo
-            torneo.actualizar_estado()
-
-            partidos_equipo = Partido.objects.filter(
-                torneo=torneo
-            ).filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo))
-
-            stats = EstadisticaJugador.objects.filter(
-                jugador=jugador_obj, partido__torneo=torneo,
-            ).aggregate(
-                total_goles=Sum('goles'),
-                total_asistencias=Sum('asistencias'),
-                total_amarillas=Sum('tarjetas_amarillas'),
-                total_rojas=Sum('tarjetas_rojas'),
-                total_minutos=Sum('minutos_jugados'),
-            )
-
-            torneos_data.append({
-                'torneo':             torneo,
-                'partidos_jugados':   partidos_equipo.filter(estado='FINALIZADO').count(),
-                'partidos_restantes': partidos_equipo.exclude(estado__in=['FINALIZADO','SUSPENDIDO']).count(),
-                'goles':       stats['total_goles']       or 0,
-                'asistencias': stats['total_asistencias'] or 0,
-                'amarillas':   stats['total_amarillas']   or 0,
-                'rojas':       stats['total_rojas']       or 0,
-                'minutos':     stats['total_minutos']     or 0,
-            })
-
-    totales = {'total_goles': 0, 'total_asistencias': 0, 'total_rojas': 0, 'total_minutos': 0}
-    if jugador_obj:
-        agg = EstadisticaJugador.objects.filter(jugador=jugador_obj).aggregate(
-            total_goles=Sum('goles'), total_asistencias=Sum('asistencias'),
-            total_rojas=Sum('tarjetas_rojas'), total_minutos=Sum('minutos_jugados'),
-        )
-        totales = {k: v or 0 for k, v in agg.items()}
+    resumen = _serializar_resumen_jugador(jugador_obj, equipo)
 
     return render(request, 'torneos/jugador/mis_torneos.html', {
-        'torneos_data': torneos_data,
-        'totales':      totales,
-        'equipo':       equipo,
+        'torneos_data': resumen['torneos_data'],
+        'totales':      resumen['totales'],
+        'equipo':       resumen['equipo'],
+        'rendimiento':  resumen['rendimiento'],
+    })
+
+
+@login_required
+def jugador_mis_torneos_datos(request):
+    if request.user.rol != 'JUGADOR':
+        return JsonResponse({'detail': 'No autorizado'}, status=403)
+
+    jugador_obj = getattr(request.user, 'jugador', None)
+    equipo = jugador_obj.equipo if jugador_obj else None
+    resumen = _serializar_resumen_jugador(jugador_obj, equipo)
+
+    return JsonResponse({
+        'equipo': resumen['equipo'].nombre if resumen['equipo'] else None,
+        'totales': resumen['totales'],
+        'torneos': resumen['torneos_data'],
+        'rendimiento': resumen['rendimiento'],
     })
