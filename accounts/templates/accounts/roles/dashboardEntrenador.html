@@ -100,7 +100,6 @@
                                         {{ total_jugadores }} jugador{{ total_jugadores|pluralize:"es" }}
                                     </span>
                                 </div>
-                                <a href="{% url 'inscripciones:mi_equipo' %}" class="btn btn-warning btn-sm mt-3">Ver Equipo</a>
                             </div>
                         </div>
                     </div>
@@ -111,7 +110,6 @@
                                 <h5 class="card-title">Entrenamientos</h5>
                                 <p>Realice entrenamientos para sus jugadores</p>
                                 <i class="fas fa-dumbbell fa-3x text-warning mb-3"></i>
-                                <a href="{% url 'lista_entrenamientos' %}" class="btn btn-warning btn-sm">Ver Entrenamientos</a>
                             </div>
                         </div>
                     </div>
@@ -122,7 +120,6 @@
                                 <h5 class="card-title">Torneos</h5>
                                 <p>Consulte la informacion de los torneos y compita al maximo</p>
                                 <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
-                                <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="btn btn-warning btn-sm">Ver Torneos</a>
                             </div>
                         </div>
                     </div>
@@ -134,7 +131,6 @@
                                 <h5 class="card-title">Canchas</h5>
                                 <p>Consulte todas las canchas disponibles en Bogota</p>
                                 <h2 class="fw-bold text-primary">{{ total_canchas }}</h2>
-                                <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="btn btn-warning btn-sm mt-2">Ver Canchas</a>
                             </div>
                         </div>
                     </div>
@@ -145,7 +141,6 @@
                                 <i class="fas fa-users fa-3x text-warning mb-3"></i>
                                 <h5 class="card-title">Jugadores</h5>
                                 <p>Revise y administre la lista de jugadores de su equipo</p>
-                                <a href="{% url 'inscripciones:lista_jugadores' %}" class="btn btn-warning btn-sm mt-2">Ver Jugadores</a>
                             </div>
                         </div>
                     </div>
