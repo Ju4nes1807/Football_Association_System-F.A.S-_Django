@@ -127,7 +127,7 @@
                                 <i class="fas fa-dumbbell fa-3x text-warning mb-3"></i>
                                 <h5 class="card-title">Entrenamientos</h5>
                                 <p class="card-text">Revisa tus próximos entrenamientos programados.</p>
-                                <a href="#" class="btn btn-warning btn-sm">Ver Entrenamientos</a>
+                                <a href="{% url 'lista_entrenamientos_jugador' %}" class="btn btn-warning btn-sm">Ver Entrenamientos</a>
                             </div>
                         </div>
                     </div>
@@ -139,7 +139,7 @@
                                 <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
                                 <h5 class="card-title">Torneos</h5>
                                 <p class="card-text">Consulta los torneos en los que participas.</p>
-                                <a href="#" class="btn btn-warning btn-sm">Ver Torneos</a>
+                                <a href="{% url 'torneos:jugador_mis_torneos' %}" class="btn btn-warning btn-sm">Ver Torneos</a>
                             </div>
                         </div>
                     </div>

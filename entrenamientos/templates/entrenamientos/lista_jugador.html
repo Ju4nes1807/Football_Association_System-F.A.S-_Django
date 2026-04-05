@@ -11,7 +11,14 @@
     <style>
         .footer-content { flex-direction: column; }
         @media (min-width: 576px) { .footer-content { flex-direction: row; } }
-        .card-table { border-radius: 15px; overflow: hidden; }
+        .agenda-card {
+            border-radius: 22px;
+            overflow: hidden;
+            border: 0;
+        }
+        .agenda-top {
+            background: linear-gradient(135deg, #0d6efd 0%, #083b87 65%, #f8c146 65%, #f8c146 100%);
+        }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light">
@@ -22,6 +29,22 @@
                 <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
                 <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
             </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navJugadorEntrenamientos">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navJugadorEntrenamientos">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <form method="POST" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesión</button>
+                        </form>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'editar_jugador_perfil' %}" class="nav-link text-light shadow">Editar Perfil</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -38,49 +61,67 @@
             </div>
 
             <div class="col-12 col-md-9 col-lg-10">
-                <div class="mb-4">
-                    <h2 class="fw-bold text-dark">Mi Calendario de Entrenamiento</h2>
-                    <p class="text-muted">Consulta los días y lugares donde debes presentarte a entrenar.</p>
+                <div class="agenda-card shadow mb-4">
+                    <div class="agenda-top text-white p-4 p-lg-5">
+                        <span class="badge bg-warning text-dark mb-3">Tu hoja de ruta</span>
+                        <h2 class="fw-bold mb-2">Mi calendario de entrenamiento</h2>
+                        {% if equipo %}
+                        <p class="mb-0">Aquí ves cada sesión programada para <strong>{{ equipo.nombre }}</strong>, con cancha, dirección y objetivo de la jornada.</p>
+                        {% else %}
+                        <p class="mb-0">Cuando tu entrenador te asigne entrenamientos para tu equipo, aparecerán aquí con todos los detalles.</p>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div class="card shadow-sm border-0 card-table">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle m-0">
-                                <thead class="bg-primary text-white">
-                                    <tr>
-                                        <th class="ps-4 py-3">Fecha y Hora</th>
-                                        <th class="py-3">Sesión / Objetivo</th>
-                                        <th class="py-3">Lugar de Encuentro</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for entrenamiento in entrenamientos %}
-                                    <tr>
-                                        <td class="ps-4">
-                                            <span class="badge bg-white text-primary border p-2">
-                                                <i class="far fa-clock me-1"></i>
-                                                {{ entrenamiento.fecha_hora|date:"d M Y - H:i" }}
-                                            </span>
-                                        </td>
-                                        <td class="fw-bold text-uppercase">{{ entrenamiento.nombre }}</td>
-                                        <td>
-                                            <i class="fas fa-map-marker-alt text-danger me-1"></i>
-                                            {{ entrenamiento.lugar }}
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td colspan="3" class="text-center py-5">
-                                            <i class="fas fa-calendar-check fa-3x text-light mb-3"></i>
-                                            <h5 class="text-muted">No tienes entrenamientos programados esta semana.</h5>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                <div class="row g-4">
+                    {% for entrenamiento in entrenamientos %}
+                    <div class="col-12 col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rounded-4">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                                    <div>
+                                        <span class="badge bg-primary-subtle text-primary mb-2">{{ entrenamiento.fecha_hora|date:"d/m/Y" }}</span>
+                                        <h4 class="fw-bold mb-1">{{ entrenamiento.nombre }}</h4>
+                                        <p class="text-muted mb-0">{{ entrenamiento.fecha_hora|date:"g:i A" }}</p>
+                                    </div>
+                                    <i class="fas fa-dumbbell text-warning fs-3"></i>
+                                </div>
+
+                                <div class="mb-3">
+                                    <p class="mb-2"><i class="fas fa-user-tie text-primary me-2"></i><strong>Entrenador:</strong> {{ entrenamiento.entrenador.nombres }} {{ entrenamiento.entrenador.apellidos }}</p>
+                                    <p class="mb-2"><i class="fas fa-shield-alt text-primary me-2"></i><strong>Equipo:</strong> {{ entrenamiento.equipo.nombre }}</p>
+                                    <p class="mb-2"><i class="fas fa-futbol text-primary me-2"></i><strong>Cancha:</strong> {% if entrenamiento.cancha %}{{ entrenamiento.cancha.nombre_escenario }}{% else %}{{ entrenamiento.lugar }}{% endif %}</p>
+                                    <p class="mb-2"><i class="fas fa-map-marker-alt text-danger me-2"></i><strong>Dirección:</strong> {% if entrenamiento.cancha %}{{ entrenamiento.cancha.direccion_exacta }}{% else %}{{ entrenamiento.lugar }}{% endif %}</p>
+                                    {% if entrenamiento.cancha %}
+                                    <p class="mb-2"><i class="fas fa-map text-success me-2"></i><strong>Zona:</strong> {{ entrenamiento.cancha.localidad }} - {{ entrenamiento.cancha.barrio }}</p>
+                                    <p class="mb-0"><i class="fas fa-layer-group text-warning me-2"></i><strong>Disciplina:</strong> {{ entrenamiento.cancha.tipo_disciplina_display }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <div class="bg-light rounded-4 p-3">
+                                    <h6 class="fw-bold text-primary mb-2">Objetivo de la sesión</h6>
+                                    <p class="text-muted mb-0">
+                                        {% if entrenamiento.descripcion %}
+                                            {{ entrenamiento.descripcion }}
+                                        {% else %}
+                                            Tu entrenador aún no agregó una descripción detallada para esta jornada.
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm rounded-4">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-calendar-check fa-3x text-light mb-3"></i>
+                                <h5 class="text-muted">No tienes entrenamientos programados por ahora.</h5>
+                                <p class="text-muted mb-0">Cuando tu entrenador agende una nueva sesión para tu equipo, la verás aquí con todos los detalles.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -92,5 +133,6 @@
             <p class="text-dark m-0 fw-bold">© Football Association System. ¡A darlo todo en la cancha!</p>
         </div>
     </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

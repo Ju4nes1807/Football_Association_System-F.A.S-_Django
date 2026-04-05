@@ -54,7 +54,7 @@
                 <h5 class="mb-3 text-primary">Menú Jugador</h5>
                 <div class="list-group">
                     <a href="{% url 'dashboard_jugador' %}" class="list-group-item list-group-item-action">Inicio</a>
-                    <a href="#" class="list-group-item list-group-item-action">Entrenamientos</a>
+                    <a href="{% url 'lista_entrenamientos_jugador' %}" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a href="{% url 'torneos:jugador_mis_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'mi_equipo_jugador' %}" class="list-group-item list-group-item-action active">Mi Equipo</a>
                 </div>

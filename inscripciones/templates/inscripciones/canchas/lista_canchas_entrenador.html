@@ -21,7 +21,7 @@
 <body class="d-flex flex-column min-vh-100">
 
     <div class="navbar navbar-expand-md bg-primary shadow mb-4">
-        <a href="landinpage.html" class="d-flex align-items-center">
+        <a href="{% url 'landingpage' %}" class="d-flex align-items-center">
             <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
             <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
         </a>
@@ -55,7 +55,7 @@
     <div class="list-group">
         <a href="{% url 'dashboard_entrenador' %}" class="list-group-item list-group-item-action">Inicio</a>
         <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Equipo</a>
-        <a href="#" class="list-group-item list-group-item-action">Entrenamientos</a>
+        <a href="{% url 'lista_entrenamientos' %}" class="list-group-item list-group-item-action">Entrenamientos</a>
         <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
         <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action active">Canchas</a>
         <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action">Jugadores</a>

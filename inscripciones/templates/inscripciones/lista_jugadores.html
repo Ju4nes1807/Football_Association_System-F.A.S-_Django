@@ -21,7 +21,7 @@
 <body class="d-flex flex-column min-vh-100">
 
     <div class="navbar navbar-expand-md bg-primary shadow mb-4">
-        <a href="landinpage.html" class="d-flex align-items-center">
+        <a href="{% url 'dashboard_entrenador' %}" class="d-flex align-items-center">
             <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
             <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
         </a>
@@ -34,11 +34,9 @@
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
                     <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="nav-link text-light shadow btn btn-link">
-                        Cerrar sesión
-                    </button>
-                </form>
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesión</button>
+                    </form>
                 </li>
                 <li class="nav-item">
                     <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
@@ -49,16 +47,13 @@
 
     <div class="container-fluid flex-grow-1">
         <div class="row">
-
             <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
                 <h5 class="mb-3 text-primary">Jugadores</h5>
 
                 <div class="list-group">
-                    <a href="{% url 'dashboard_entrenador' %}"
-                        class="list-group-item list-group-item-action">Inicio</a>
-                    <a href="{% url 'inscripciones:mi_equipo' %}"
-                        class="list-group-item list-group-item-action">Equipo</a>
-                    <a th:href="@{/lider/Entrenamientos}" class="list-group-item list-group-item-action">Entrenamientos</a>
+                    <a href="{% url 'dashboard_entrenador' %}" class="list-group-item list-group-item-action">Inicio</a>
+                    <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Equipo</a>
+                    <a href="{% url 'lista_entrenamientos' %}" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
                     <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action active">Jugadores</a>
@@ -66,10 +61,13 @@
             </div>
 
             <div class="col-md-9 col-lg-10 p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                     <div>
                         <h2 class="mb-0">Jugadores</h2>
-                        <small class="text-muted">{{ equipo.nombre }} — {{ equipo.categoria_display }}</small>
+                        <small class="text-muted">{{ equipo.nombre }} - {{ equipo.categoria_display }}</small>
+                        <div class="small text-muted mt-1">
+                            Las estadísticas se editan desde Torneos > Mis partidos > Gestionar estadísticas.
+                        </div>
                     </div>
                     <div class="d-flex gap-2">
                         <a href="{% url 'inscripciones:registrar_jugador' %}" class="btn btn-primary">
@@ -109,22 +107,22 @@
                                 <td>{{ jugador.email }}</td>
                                 <td>{{ jugador.telefono }}</td>
                                 <td>
-    <a href="{% url 'inscripciones:editar_jugador' jugador.id %}" class="btn btn-primary btn-sm me-1">
-        <i class="fas fa-edit"></i>
-    </a>
-    <button type="button" class="btn btn-danger btn-sm"
-        data-bs-toggle="modal"
-        data-bs-target="#modalConfirmacion"
-        data-form-id="formEliminar_{{ jugador.id }}"
-        data-nombre="{{ jugador.nombres }} {{ jugador.apellidos }}">
-        <i class="fas fa-trash"></i>
-    </button>
-    <form id="formEliminar_{{ jugador.id }}"
-        action="{% url 'inscripciones:eliminar_jugador' jugador.id %}"
-        method="POST" class="d-none">
-        {% csrf_token %}
-    </form>
-</td>
+                                    <a href="{% url 'inscripciones:editar_jugador' jugador.id %}" class="btn btn-primary btn-sm me-1">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalConfirmacion"
+                                        data-form-id="formEliminar_{{ jugador.id }}"
+                                        data-nombre="{{ jugador.nombres }} {{ jugador.apellidos }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    <form id="formEliminar_{{ jugador.id }}"
+                                        action="{% url 'inscripciones:eliminar_jugador' jugador.id %}"
+                                        method="POST" class="d-none">
+                                        {% csrf_token %}
+                                    </form>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -177,23 +175,27 @@
     <script>
     (() => {
         function showToast(msg, type='success') {
-            const t=document.getElementById('fas-toast');
-            document.getElementById('fas-toast-msg').textContent=msg;
-            t.className=`fas-toast show ${type}`;
-            setTimeout(()=>t.classList.remove('show'),4000);
+            const t = document.getElementById('fas-toast');
+            document.getElementById('fas-toast-msg').textContent = msg;
+            t.className = `fas-toast show ${type}`;
+            setTimeout(() => t.classList.remove('show'), 4000);
         }
-        let formId=null;
-        document.querySelectorAll('[data-bs-target="#modalConfirmacion"]').forEach(btn=>{
-            btn.addEventListener('click',()=>{
-                formId=btn.getAttribute('data-form-id');
-                document.getElementById('modal-nombre-jugador').textContent=btn.getAttribute('data-nombre');
+        let formId = null;
+        document.querySelectorAll('[data-bs-target="#modalConfirmacion"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                formId = btn.getAttribute('data-form-id');
+                document.getElementById('modal-nombre-jugador').textContent = btn.getAttribute('data-nombre');
             });
         });
-        document.getElementById('confirmDeleteBtn').addEventListener('click',()=>{
-            if(formId) document.getElementById(formId)?.submit();
+        document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+            if (formId) {
+                document.getElementById(formId)?.submit();
+            }
         });
-        const d=document.getElementById('django-messages');
-        if(d&&d.dataset.msg) showToast(d.dataset.msg,d.dataset.type||'success');
+        const d = document.getElementById('django-messages');
+        if (d && d.dataset.msg) {
+            showToast(d.dataset.msg, d.dataset.type || 'success');
+        }
     })();
     </script>
 </body>
