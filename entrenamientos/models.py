@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import Entrenador 
+from accounts.models import Jugador
 from inscripciones.models import Equipo, Cancha
 
 class Entrenamiento(models.Model):
@@ -32,4 +33,33 @@ class Entrenamiento(models.Model):
         if self.cancha:
             return f"{self.cancha.nombre_escenario} - {self.cancha.direccion_exacta}"
         return self.lugar
+
+
+class AsistenciaEntrenamiento(models.Model):
+    entrenamiento = models.ForeignKey(
+        Entrenamiento,
+        on_delete=models.CASCADE,
+        related_name='asistencias_jugadores'
+    )
+    jugador = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name='asistencias_entrenamiento'
+    )
+    asistio = models.BooleanField(null=True, blank=True)
+    fecha_registro = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Asistencia de Entrenamiento'
+        verbose_name_plural = 'Asistencias de Entrenamiento'
+        unique_together = ('entrenamiento', 'jugador')
+        ordering = ['entrenamiento__fecha_hora', 'jugador___dorsal', 'jugador___nombres']
+
+    def __str__(self):
+        estado = 'Pendiente'
+        if self.asistio is True:
+            estado = 'Asistio'
+        elif self.asistio is False:
+            estado = 'No asistio'
+        return f'{self.jugador} - {self.entrenamiento}: {estado}'
 

@@ -26,6 +26,11 @@
             border: 1px solid rgba(13, 110, 253, 0.08);
             border-radius: 24px;
         }
+        .attendance-chip {
+            border-radius: 999px;
+            font-size: .8rem;
+            padding: .35rem .75rem;
+        }
     </style>
 </head>
 
@@ -87,6 +92,25 @@
                     </div>
                 </div>
 
+                {% if request.user.rol == 'ENTRENADOR' and total_jugadores == 0 %}
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+                    <div class="card-body p-4 p-lg-5">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+                            <div>
+                                <span class="badge bg-danger-subtle text-danger mb-2">Plantilla incompleta</span>
+                                <h4 class="fw-bold mb-2">Todavía no tienes jugadores registrados</h4>
+                                <p class="text-muted mb-0">Registra jugadores en tu equipo para poder llevar asistencia y gestionar mejor cada entrenamiento.</p>
+                            </div>
+                            <div>
+                                <a href="{% url 'inscripciones:lista_jugadores' %}" class="btn btn-primary">
+                                    <i class="fas fa-users me-2"></i>Ir a jugadores
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="card shadow-sm border-0 card-table">
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -97,12 +121,131 @@
                                         <th class="py-3">Sesión</th>
                                         <th class="py-3">Cancha</th>
                                         <th class="py-3">Detalles</th>
+                                        {% if request.user.rol == 'ENTRENADOR' %}
+                                        <th class="py-3">Asistencia</th>
+                                        {% endif %}
                                         {% if request.user.rol == 'ENTRENADOR' or request.user.rol == 'ADMIN' %}
                                         <th class="text-center py-3">Acciones</th>
                                         {% endif %}
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {% if request.user.rol == 'ENTRENADOR' %}
+                                    {% for bloque in panel_asistencia %}
+                                    {% with entrenamiento=bloque.entrenamiento %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <span class="badge bg-light text-primary border p-2">
+                                                <i class="far fa-calendar-alt me-1"></i>
+                                                {{ entrenamiento.fecha_hora|date:"d M Y - H:i" }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">{{ entrenamiento.nombre }}</div>
+                                            {% if entrenamiento.descripcion %}
+                                            <small class="text-muted">{{ entrenamiento.descripcion|truncatechars:70 }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">
+                                                <i class="fas fa-futbol text-primary me-1"></i>
+                                                {% if entrenamiento.cancha %}{{ entrenamiento.cancha.nombre_escenario }}{% else %}{{ entrenamiento.lugar }}{% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if entrenamiento.cancha %}
+                                            <small class="text-muted d-block">{{ entrenamiento.cancha.direccion_exacta }}</small>
+                                            <small class="text-muted">{{ entrenamiento.cancha.localidad }} - {{ entrenamiento.cancha.barrio }}</small>
+                                            {% else %}
+                                            <small class="text-muted">Sin detalle adicional</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <span class="badge text-bg-success attendance-chip">{{ bloque.asistieron }} asistieron</span>
+                                                <span class="badge text-bg-danger attendance-chip">{{ bloque.faltaron }} faltaron</span>
+                                                <span class="badge text-bg-secondary attendance-chip">{{ bloque.sin_marcar }} sin marcar</span>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-primary mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#asistenciaEvento{{ entrenamiento.id }}" aria-expanded="false" aria-controls="asistenciaEvento{{ entrenamiento.id }}">
+                                                <i class="fas fa-clipboard-check me-1"></i>Ver jugadores
+                                            </button>
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="{% url 'editar_entrenamiento' entrenamiento.id %}" class="btn btn-sm btn-outline-primary mx-1 shadow-sm">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form action="{% url 'eliminar_entrenamiento' entrenamiento.id %}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar esta sesión?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <tr class="bg-light">
+                                        <td></td>
+                                        <td colspan="5">
+                                            <div class="collapse py-3" id="asistenciaEvento{{ entrenamiento.id }}">
+                                                {% if bloque.registros %}
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm align-middle mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Jugador</th>
+                                                                <th>Posición</th>
+                                                                <th>Estado</th>
+                                                                <th class="text-end">Marcar</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for fila in bloque.registros %}
+                                                            <tr>
+                                                                <td>
+                                                                    <div class="fw-semibold">#{{ fila.jugador.dorsal }} {{ fila.jugador.nombres }} {{ fila.jugador.apellidos }}</div>
+                                                                </td>
+                                                                <td>{{ fila.jugador.posicion|title }}</td>
+                                                                <td><span class="badge {{ fila.estado_badge }}">{{ fila.estado_label }}</span></td>
+                                                                <td class="text-end">
+                                                                    <div class="d-flex justify-content-end flex-wrap gap-2">
+                                                                        <form action="{% url 'actualizar_asistencia_entrenamiento' entrenamiento.id %}" method="POST" class="d-inline">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="jugador_id" value="{{ fila.jugador.id }}">
+                                                                            <input type="hidden" name="estado" value="asistio">
+                                                                            <button type="submit" class="btn btn-sm {% if fila.estado_label == 'Asistio' %}btn-success{% else %}btn-outline-success{% endif %}">
+                                                                                <i class="fas fa-check me-1"></i>Asistió
+                                                                            </button>
+                                                                        </form>
+                                                                        <form action="{% url 'actualizar_asistencia_entrenamiento' entrenamiento.id %}" method="POST" class="d-inline">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="jugador_id" value="{{ fila.jugador.id }}">
+                                                                            <input type="hidden" name="estado" value="falto">
+                                                                            <button type="submit" class="btn btn-sm {% if fila.estado_label == 'Falto' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                                                                <i class="fas fa-times me-1"></i>Faltó
+                                                                            </button>
+                                                                        </form>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                {% else %}
+                                                <div class="alert alert-info mb-0">Aún no hay jugadores registrados en tu equipo para tomar asistencia.</div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <i class="fas fa-running fa-3x text-light mb-3"></i>
+                                            <h5 class="text-muted">No hay entrenamientos programados todavía.</h5>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
                                     {% for entrenamiento in entrenamientos %}
                                     <tr>
                                         <td class="ps-4">
@@ -131,7 +274,6 @@
                                             <small class="text-muted">Sin detalle adicional</small>
                                             {% endif %}
                                         </td>
-                                        {% if request.user.rol == 'ENTRENADOR' or request.user.rol == 'ADMIN' %}
                                         <td class="text-center">
                                             <a href="{% url 'editar_entrenamiento' entrenamiento.id %}" class="btn btn-sm btn-outline-primary mx-1 shadow-sm">
                                                 <i class="fas fa-edit"></i>
@@ -143,7 +285,6 @@
                                                 </button>
                                             </form>
                                         </td>
-                                        {% endif %}
                                     </tr>
                                     {% empty %}
                                     <tr>
@@ -153,6 +294,7 @@
                                         </td>
                                     </tr>
                                     {% endfor %}
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>
