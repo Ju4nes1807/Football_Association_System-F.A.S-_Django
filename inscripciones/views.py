@@ -15,10 +15,11 @@ import csv
 import io
 from datetime import date, datetime, time
 import openpyxl
+from openpyxl.utils.datetime import from_excel
 from django.contrib.auth.hashers import make_password
 from accounts.models import Usuario, Jugador
 from django.contrib.auth import update_session_auth_hash
-from .utils import validar_edad_categoria, _enviar_credenciales_jugador, geodificar_direccion
+from .utils import validar_edad_categoria, _enviar_credenciales_jugador, geodificar_direccion, enviar_credenciales_jugadores_lote
 
 def _get_equipo_entrenador(user):
     """Retorna el equipo del entrenador o None."""
@@ -491,7 +492,18 @@ def lista_jugadores(request):
         return redirect ('inscripciones:mi_equipo')
     
     jugadores = Jugador.objects.filter(equipo = equipo).order_by('_dorsal')
-    return render(request, 'inscripciones/lista_jugadores.html', {'equipo': equipo, 'jugadores': jugadores})
+    total_jugadores = jugadores.count()
+    cupo_maximo_jugadores = Jugador.MAX_JUGADORES_POR_EQUIPO
+    cupos_disponibles = max(cupo_maximo_jugadores - total_jugadores, 0)
+
+    return render(request, 'inscripciones/lista_jugadores.html', {
+        'equipo': equipo,
+        'jugadores': jugadores,
+        'total_jugadores': total_jugadores,
+        'cupo_maximo_jugadores': cupo_maximo_jugadores,
+        'cupos_disponibles': cupos_disponibles,
+        'equipo_lleno': cupos_disponibles == 0,
+    })
 
 @login_required
 def registrar_jugador(request):
@@ -506,6 +518,14 @@ def registrar_jugador(request):
     if equipo.estado != 'APROBADO':
         messages.error(request, 'Tu equipo debe estar aprobado para registrar jugadores.')
         return redirect('inscripciones:mi_equipo')
+
+    total_jugadores = Jugador.objects.filter(equipo=equipo).count()
+    if total_jugadores >= Jugador.MAX_JUGADORES_POR_EQUIPO:
+        messages.error(
+            request,
+            f'Tu equipo ya alcanzó el máximo de {Jugador.MAX_JUGADORES_POR_EQUIPO} jugadores.'
+        )
+        return redirect('inscripciones:lista_jugadores')
 
     form = RegistroJugadorForm(request.POST or None, equipo=equipo)
 
@@ -590,6 +610,14 @@ def carga_masiva_jugadores(request):
         messages.error(request, 'Tu equipo debe estar aprobado para registrar jugadores.')
         return redirect('inscripciones:mi_equipo')
 
+    total_jugadores = Jugador.objects.filter(equipo=equipo).count()
+    if total_jugadores >= Jugador.MAX_JUGADORES_POR_EQUIPO:
+        messages.error(
+            request,
+            f'Tu equipo ya alcanzó el máximo de {Jugador.MAX_JUGADORES_POR_EQUIPO} jugadores.'
+        )
+        return redirect('inscripciones:lista_jugadores')
+
     form = CargaMasivaJugadoresForm(request.POST or None, request.FILES or None)
     errores  = []
     exitosos = 0
@@ -604,12 +632,7 @@ def carga_masiva_jugadores(request):
             else:
                 filas = _leer_csv(archivo)
 
-            for i, fila in enumerate(filas, start=2):
-                resultado = _procesar_fila_jugador(fila, equipo, i, request)
-                if resultado['ok']:
-                    exitosos += 1
-                else:
-                    errores.append(resultado['error'])
+            exitosos, errores = _procesar_carga_masiva_jugadores(filas, equipo, request)
 
             if exitosos:
                 messages.success(request, f'{exitosos} jugador(es) registrado(s) correctamente.')
@@ -626,117 +649,253 @@ def carga_masiva_jugadores(request):
     })
 
 def _leer_excel(archivo):
-    wb   = openpyxl.load_workbook(archivo)
-    ws   = wb.active
-    rows = list(ws.iter_rows(values_only=True))
-    if not rows:
-        return []
-    headers = [str(h).strip().lower() if h else '' for h in rows[0]]
-    filas   = []
-    for row in rows[1:]:
-        if any(cell is not None for cell in row):
-            filas.append(dict(zip(headers, row)))
-    return filas
+    wb = openpyxl.load_workbook(archivo, read_only=True, data_only=True)
+    try:
+        ws = wb.active
+        rows_iter = ws.iter_rows(values_only=True)
+        headers_row = next(rows_iter, None)
+        if not headers_row:
+            return []
+
+        headers = [str(h).strip().lower() if h else '' for h in headers_row]
+        filas = []
+        for row in rows_iter:
+            if any(cell not in (None, '') for cell in row):
+                filas.append(dict(zip(headers, row)))
+        return filas
+    finally:
+        wb.close()
 
 
 def _leer_csv(archivo):
-    content = archivo.read().decode('utf-8-sig')
+    content = archivo.read().decode('utf-8-sig', errors='replace')
     reader  = csv.DictReader(io.StringIO(content))
     return [
-        {k.strip().lower(): v for k, v in row.items()}
+        {(k or '').strip().lower(): v for k, v in row.items()}
         for row in reader
     ]
 
 
-def _procesar_fila_jugador(fila, equipo, num_fila, request):
+def _obtener_valor_fila(fila, keys):
+    for key in keys:
+        value = fila.get(key)
+        if value not in (None, ''):
+            return str(value).strip()
+    return ''
+
+
+def _parsear_fecha_nacimiento(fecha_val):
+    if isinstance(fecha_val, datetime):
+        return fecha_val.date(), None
+    if isinstance(fecha_val, date):
+        return fecha_val, None
+
+    if isinstance(fecha_val, (int, float)):
+        try:
+            fecha_excel = from_excel(fecha_val)
+            if isinstance(fecha_excel, datetime):
+                return fecha_excel.date(), None
+            if isinstance(fecha_excel, date):
+                return fecha_excel, None
+        except Exception:
+            pass
+
+    if isinstance(fecha_val, str):
+        fecha_texto = fecha_val.strip()
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y'):
+            try:
+                return datetime.strptime(fecha_texto, fmt).date(), None
+            except ValueError:
+                continue
+        return None, f'Fecha inválida "{fecha_texto}"'
+
+    return None, 'Fecha inválida o vacía'
+
+
+def _normalizar_fila_jugador(fila, equipo, num_fila):
+    nombres = _obtener_valor_fila(fila, ['nombres', 'nombre'])
+    apellidos = _obtener_valor_fila(fila, ['apellidos', 'apellido'])
+    num_documento = _obtener_valor_fila(fila, ['num_documento', 'documento', 'cedula'])
+    fecha_raw = fila.get('fecha_nacimiento') or fila.get('fecha nacimiento') or fila.get('nacimiento')
+    email = _obtener_valor_fila(fila, ['email', 'correo']).lower()
+    telefono = _obtener_valor_fila(fila, ['telefono', 'teléfono', 'celular'])
+    dorsal_str = _obtener_valor_fila(fila, ['dorsal', 'numero', 'número'])
+    pie_dominante = _obtener_valor_fila(fila, ['pie_dominante', 'pie dominante', 'pie']).lower()
+    posicion = _obtener_valor_fila(fila, ['posicion', 'posición']).lower()
+    password = _obtener_valor_fila(fila, ['password', 'contraseña', 'clave']) or 'Fas2024*'
+
+    campos_requeridos = {
+        'nombres': nombres,
+        'apellidos': apellidos,
+        'num_documento': num_documento,
+        'email': email,
+        'telefono': telefono,
+        'dorsal': dorsal_str,
+        'pie_dominante': pie_dominante,
+        'posicion': posicion,
+    }
+    faltantes = [k for k, v in campos_requeridos.items() if not v]
+    if faltantes or fecha_raw in (None, ''):
+        if fecha_raw in (None, '') and 'fecha_nacimiento' not in faltantes:
+            faltantes.append('fecha_nacimiento')
+        return None, f'Fila {num_fila}: Campos vacíos: {", ".join(faltantes)}'
+
     try:
-        # Mapeo flexible de columnas
-        def get(keys):
-            for k in keys:
-                if k in fila and fila[k] not in (None, ''):
-                    return str(fila[k]).strip()
-            return ''
+        dorsal = int(float(dorsal_str))
+    except (TypeError, ValueError):
+        return None, f'Fila {num_fila}: Dorsal inválido "{dorsal_str}"'
 
-        nombres          = get(['nombres', 'nombre'])
-        apellidos        = get(['apellidos', 'apellido'])
-        num_documento    = get(['num_documento', 'documento', 'cedula'])
-        fecha_str        = get(['fecha_nacimiento', 'fecha nacimiento', 'nacimiento'])
-        email            = get(['email', 'correo'])
-        telefono         = get(['telefono', 'teléfono', 'celular'])
-        dorsal_str       = get(['dorsal', 'numero', 'número'])
-        pie_dominante    = get(['pie_dominante', 'pie dominante', 'pie'])
-        posicion         = get(['posicion', 'posición'])
-        password         = get(['password', 'contraseña', 'clave']) or 'Fas2024*'
+    if dorsal < 1 or dorsal > 99:
+        return None, f'Fila {num_fila}: El dorsal debe estar entre 1 y 99'
 
-        # Validaciones básicas
-        campos_requeridos = {
-            'nombres': nombres, 'apellidos': apellidos,
-            'num_documento': num_documento, 'fecha_nacimiento': fecha_str,
-            'email': email, 'telefono': telefono,
-            'dorsal': dorsal_str, 'pie_dominante': pie_dominante,
-            'posicion': posicion,
-        }
-        faltantes = [k for k, v in campos_requeridos.items() if not v]
-        if faltantes:
-            return {'ok': False, 'error': f'Fila {num_fila}: Campos vacíos: {", ".join(faltantes)}'}
+    fecha_nacimiento, fecha_error = _parsear_fecha_nacimiento(fecha_raw)
+    if fecha_error:
+        return None, f'Fila {num_fila}: {fecha_error}'
 
-        # Parsear fecha
-        fecha_val = fila.get('fecha_nacimiento') or fila.get('fecha nacimiento') or fila.get('nacimiento')
+    valido, msg = validar_edad_categoria(fecha_nacimiento, equipo.categoria)
+    if not valido:
+        return None, f'Fila {num_fila}: {msg}'
 
-        if isinstance(fecha_val, (datetime, date)):
-            fecha_nacimiento = fecha_val.date() if isinstance(fecha_val, datetime) else fecha_val
-        elif isinstance(fecha_val, str):
-            fecha_str = fecha_val.strip()
-            for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y'):
-                try:
-                    fecha_nacimiento = datetime.strptime(fecha_str, fmt).date()
-                    break
-                except ValueError:
-                    continue
-            else:
-                return {'ok': False, 'error': f'Fila {num_fila}: Fecha inválida "{fecha_str}"'}
-        else:
-            return {'ok': False, 'error': f'Fila {num_fila}: Fecha inválida o vacía'}
+    return {
+        'num_fila': num_fila,
+        'nombres': nombres,
+        'apellidos': apellidos,
+        'num_documento': num_documento,
+        'fecha_nacimiento': fecha_nacimiento,
+        'email': email,
+        'telefono': telefono,
+        'dorsal': dorsal,
+        'pie_dominante': pie_dominante,
+        'posicion': posicion,
+        'password': password,
+    }, None
 
-        # Validar edad vs categoría
-        valido, msg = validar_edad_categoria(fecha_nacimiento, equipo.categoria)
-        if not valido:
-            return {'ok': False, 'error': f'Fila {num_fila}: {msg}'}
 
-        # Validar duplicados
-        if Usuario.objects.filter(_email=email).exists():
-            return {'ok': False, 'error': f'Fila {num_fila}: Correo "{email}" ya registrado'}
-        if Usuario.objects.filter(_num_documento=num_documento).exists():
-            return {'ok': False, 'error': f'Fila {num_fila}: Documento "{num_documento}" ya registrado'}
-        if Usuario.objects.filter(_telefono=telefono).exists():
-            return {'ok': False, 'error': f'Fila {num_fila}: Teléfono "{telefono}" ya registrado'}
+def _buscar_existentes_en_bloques(modelo, campo, valores, **filtros):
+    if not valores:
+        return set()
 
-        dorsal = int(dorsal_str)
-        if Jugador.objects.filter(equipo=equipo, _dorsal=dorsal).exists():
-            return {'ok': False, 'error': f'Fila {num_fila}: Dorsal {dorsal} ya en uso'}
+    existentes = set()
+    valores_lista = list(valores)
+    chunk_size = 800
 
-        # Crear jugador
-        jugador = Jugador()
-        jugador.nombres          = nombres
-        jugador.apellidos        = apellidos
-        jugador.num_documento    = num_documento
-        jugador.fecha_nacimiento = fecha_nacimiento
-        jugador.email            = email
-        jugador.telefono         = telefono
-        jugador._rol             = Usuario.Roles.JUGADOR
-        jugador.dorsal           = dorsal
-        jugador.pie_dominante    = pie_dominante.lower()
-        jugador.posicion         = posicion.lower()
-        jugador.equipo           = equipo
-        jugador.set_password(password)
-        jugador.save()
+    for i in range(0, len(valores_lista), chunk_size):
+        bloque = valores_lista[i:i + chunk_size]
+        qs = modelo.objects.filter(**filtros).filter(**{f'{campo}__in': bloque})
+        existentes.update(qs.values_list(campo, flat=True))
 
-        _enviar_credenciales_jugador(jugador, password, request)
+    return existentes
 
-        return {'ok': True}
 
-    except Exception as e:
-        return {'ok': False, 'error': f'Fila {num_fila}: {str(e)}'}
+def _procesar_carga_masiva_jugadores(filas, equipo, request):
+    errores = []
+    filas_limpias = []
+
+    max_jugadores_equipo = Jugador.MAX_JUGADORES_POR_EQUIPO
+    jugadores_actuales = Jugador.objects.filter(equipo=equipo).count()
+    cupos_disponibles = max(max_jugadores_equipo - jugadores_actuales, 0)
+
+    if cupos_disponibles <= 0:
+        return 0, [
+            f'El equipo ya alcanzó el máximo de {max_jugadores_equipo} jugadores.'
+        ]
+
+    emails_archivo = set()
+    documentos_archivo = set()
+    telefonos_archivo = set()
+    dorsales_archivo = set()
+
+    for num_fila, fila in enumerate(filas, start=2):
+        data, error = _normalizar_fila_jugador(fila, equipo, num_fila)
+        if error:
+            errores.append(error)
+            continue
+
+        if data['email'] in emails_archivo:
+            errores.append(f'Fila {num_fila}: Correo "{data["email"]}" duplicado en el archivo')
+            continue
+        if data['num_documento'] in documentos_archivo:
+            errores.append(f'Fila {num_fila}: Documento "{data["num_documento"]}" duplicado en el archivo')
+            continue
+        if data['telefono'] in telefonos_archivo:
+            errores.append(f'Fila {num_fila}: Teléfono "{data["telefono"]}" duplicado en el archivo')
+            continue
+        if data['dorsal'] in dorsales_archivo:
+            errores.append(f'Fila {num_fila}: Dorsal {data["dorsal"]} duplicado en el archivo')
+            continue
+
+        emails_archivo.add(data['email'])
+        documentos_archivo.add(data['num_documento'])
+        telefonos_archivo.add(data['telefono'])
+        dorsales_archivo.add(data['dorsal'])
+        filas_limpias.append(data)
+
+    if not filas_limpias:
+        return 0, errores
+
+    emails_existentes = _buscar_existentes_en_bloques(Usuario, '_email', emails_archivo)
+    documentos_existentes = _buscar_existentes_en_bloques(Usuario, '_num_documento', documentos_archivo)
+    telefonos_existentes = _buscar_existentes_en_bloques(Usuario, '_telefono', telefonos_archivo)
+    dorsales_existentes = _buscar_existentes_en_bloques(Jugador, '_dorsal', dorsales_archivo, equipo=equipo)
+
+    registros_guardados = []
+
+    for data in filas_limpias:
+        num_fila = data['num_fila']
+
+        if len(registros_guardados) >= cupos_disponibles:
+            errores.append(
+                f'Fila {num_fila}: No hay cupos disponibles. Máximo {max_jugadores_equipo} jugadores por equipo'
+            )
+            continue
+
+        if data['email'] in emails_existentes:
+            errores.append(f'Fila {num_fila}: Correo "{data["email"]}" ya registrado')
+            continue
+        if data['num_documento'] in documentos_existentes:
+            errores.append(f'Fila {num_fila}: Documento "{data["num_documento"]}" ya registrado')
+            continue
+        if data['telefono'] in telefonos_existentes:
+            errores.append(f'Fila {num_fila}: Teléfono "{data["telefono"]}" ya registrado')
+            continue
+        if data['dorsal'] in dorsales_existentes:
+            errores.append(f'Fila {num_fila}: Dorsal {data["dorsal"]} ya en uso')
+            continue
+
+        try:
+            jugador = Jugador()
+            jugador.nombres = data['nombres']
+            jugador.apellidos = data['apellidos']
+            jugador.num_documento = data['num_documento']
+            jugador.fecha_nacimiento = data['fecha_nacimiento']
+            jugador.email = data['email']
+            jugador.telefono = data['telefono']
+            jugador._rol = Usuario.Roles.JUGADOR
+            jugador.dorsal = data['dorsal']
+            jugador.pie_dominante = data['pie_dominante']
+            jugador.posicion = data['posicion']
+            jugador.equipo = equipo
+            jugador.password = make_password(data['password'])
+            jugador.save()
+
+            registros_guardados.append((jugador, data['password']))
+
+            emails_existentes.add(data['email'])
+            documentos_existentes.add(data['num_documento'])
+            telefonos_existentes.add(data['telefono'])
+            dorsales_existentes.add(data['dorsal'])
+
+        except IntegrityError:
+            errores.append(f'Fila {num_fila}: Conflicto de datos duplicados al guardar')
+        except ValueError as e:
+            errores.append(f'Fila {num_fila}: {str(e)}')
+        except Exception as e:
+            errores.append(f'Fila {num_fila}: {str(e)}')
+
+    if registros_guardados:
+        enviar_credenciales_jugadores_lote(registros_guardados, request)
+
+    return len(registros_guardados), errores
 
 @login_required
 def editar_jugador(request, jugador_id):

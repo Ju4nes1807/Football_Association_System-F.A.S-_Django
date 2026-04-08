@@ -65,17 +65,34 @@
                     <div>
                         <h2 class="mb-0">Jugadores</h2>
                         <small class="text-muted">{{ equipo.nombre }} - {{ equipo.categoria_display }}</small>
+                        <div class="small mt-1">
+                            Cupo de jugadores: <strong>{{ total_jugadores }}/{{ cupo_maximo_jugadores }}</strong>
+                            {% if equipo_lleno %}
+                                <span class="badge bg-danger ms-2">Cupo completo</span>
+                            {% else %}
+                                <span class="text-success ms-2">{{ cupos_disponibles }} cupo(s) disponible(s)</span>
+                            {% endif %}
+                        </div>
                         <div class="small text-muted mt-1">
                             Las estadísticas se editan desde Torneos > Mis partidos > Gestionar estadísticas.
                         </div>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{% url 'inscripciones:registrar_jugador' %}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i> Agregar Jugador
-                        </a>
-                        <a href="{% url 'inscripciones:carga_masiva_jugadores' %}" class="btn btn-warning">
-                            <i class="fas fa-upload me-1"></i> Carga Masiva
-                        </a>
+                        {% if equipo_lleno %}
+                            <button type="button" class="btn btn-primary" disabled title="Cupo máximo alcanzado">
+                                <i class="fas fa-plus me-1"></i> Agregar Jugador
+                            </button>
+                            <button type="button" class="btn btn-warning" disabled title="Cupo máximo alcanzado">
+                                <i class="fas fa-upload me-1"></i> Carga Masiva
+                            </button>
+                        {% else %}
+                            <a href="{% url 'inscripciones:registrar_jugador' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Agregar Jugador
+                            </a>
+                            <a href="{% url 'inscripciones:carga_masiva_jugadores' %}" class="btn btn-warning">
+                                <i class="fas fa-upload me-1"></i> Carga Masiva
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -107,22 +124,25 @@
                                 <td>{{ jugador.email }}</td>
                                 <td>{{ jugador.telefono }}</td>
                                 <td>
-                                    <a href="{% url 'inscripciones:editar_jugador' jugador.id %}" class="btn btn-primary btn-sm me-1">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button type="button" class="btn btn-danger btn-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalConfirmacion"
-                                        data-form-id="formEliminar_{{ jugador.id }}"
-                                        data-nombre="{{ jugador.nombres }} {{ jugador.apellidos }}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                    <form id="formEliminar_{{ jugador.id }}"
-                                        action="{% url 'inscripciones:eliminar_jugador' jugador.id %}"
-                                        method="POST" class="d-none">
-                                        {% csrf_token %}
-                                    </form>
-                                </td>
+    <div class="d-flex gap-1 flex-nowrap">
+        <a href="{% url 'inscripciones:editar_jugador' jugador.id %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-edit"></i>
+        </a>
+        <button type="button" class="btn btn-danger btn-sm"
+            data-bs-toggle="modal"
+            data-bs-target="#modalConfirmacion"
+            data-form-id="formEliminar_{{ jugador.id }}"
+            data-nombre="{{ jugador.nombres }} {{ jugador.apellidos }}">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
+
+    <form id="formEliminar_{{ jugador.id }}"
+        action="{% url 'inscripciones:eliminar_jugador' jugador.id %}"
+        method="POST" class="d-none">
+        {% csrf_token %}
+    </form>
+</td>
                             </tr>
                             {% endfor %}
                         </tbody>

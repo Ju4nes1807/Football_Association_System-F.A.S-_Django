@@ -1,5 +1,5 @@
 from datetime import date
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.urls import reverse
 import requests
 from django.conf import settings
@@ -29,12 +29,13 @@ def validar_edad_categoria(fecha_nacimiento, categoria):
         return False, f'El jugador tiene {edad} años. La categoria {categoria} acepta entre {min_edad} y {max_edad} años.'
     return True, None
 
-def _enviar_credenciales_jugador(jugador, password_plana, request):
+def _enviar_credenciales_jugador(jugador, password_plana, request=None, connection=None, login_url=None):
     """Envía las credenciales de acceso al jugador por correo."""
-    from django.core.mail import EmailMultiAlternatives
-    from django.urls import reverse
-    
-    login_url = request.build_absolute_uri(reverse('login'))
+    if not login_url and request is not None:
+        login_url = request.build_absolute_uri(reverse('login'))
+    if not login_url:
+        return False
+
     asunto = '🎉 Bienvenido a F.A.S — Tus credenciales de acceso'
 
     texto_plano = f"""
@@ -206,11 +207,43 @@ Por seguridad, cambia tu contraseña después del primer inicio de sesión.
             body=texto_plano,
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[jugador.email],
+            connection=connection,
         )
         msg.attach_alternative(html, 'text/html')
         msg.send()
+        return True
     except Exception:
-        pass
+        return False
+
+
+def enviar_credenciales_jugadores_lote(registros, request):
+    """Envía credenciales en lote reutilizando una sola conexión SMTP."""
+    if not registros:
+        return 0
+
+    login_url = request.build_absolute_uri(reverse('login'))
+    enviados = 0
+    connection = get_connection(fail_silently=True)
+
+    try:
+        connection.open()
+        for jugador, password_plana in registros:
+            if _enviar_credenciales_jugador(
+                jugador,
+                password_plana,
+                connection=connection,
+                login_url=login_url,
+            ):
+                enviados += 1
+    except Exception:
+        return enviados
+    finally:
+        try:
+            connection.close()
+        except Exception:
+            pass
+
+    return enviados
   
 def geodificar_direccion(direccion):
     try:

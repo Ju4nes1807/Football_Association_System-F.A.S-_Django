@@ -115,6 +115,8 @@ class Usuario(AbstractBaseUser):
         self._rol = value
 
 class Jugador(Usuario):
+    MAX_JUGADORES_POR_EQUIPO = 30
+
     _dorsal = models.PositiveIntegerField(db_column='dorsal')
     _pie_dominante = models.CharField(max_length=20, db_column='pie_dominante')
     _posicion = models.CharField(max_length=50, db_column='posicion')
@@ -160,6 +162,23 @@ class Jugador(Usuario):
         if not value or value.lower().strip() not in posiciones_validas:
             raise ValueError(f'Posición inválida. Opciones: {posiciones_validas}')
         self._posicion = value.lower().strip()
+
+    def _validar_cupo_equipo(self):
+        if not self.equipo_id:
+            return
+
+        jugadores_equipo = Jugador.objects.filter(equipo_id=self.equipo_id)
+        if self.pk:
+            jugadores_equipo = jugadores_equipo.exclude(pk=self.pk)
+
+        if jugadores_equipo.count() >= self.MAX_JUGADORES_POR_EQUIPO:
+            raise ValueError(
+                f'El equipo ya alcanzó el máximo de {self.MAX_JUGADORES_POR_EQUIPO} jugadores.'
+            )
+
+    def save(self, *args, **kwargs):
+        self._validar_cupo_equipo()
+        return super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Jugador"

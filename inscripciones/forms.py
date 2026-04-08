@@ -142,6 +142,15 @@ class RegistroJugadorForm(forms.Form):
     def clean(self):
         cleaned_data     = super().clean()
         fecha_nacimiento = cleaned_data.get('fecha_nacimiento')
+
+        if self.equipo:
+            total_jugadores = Jugador.objects.filter(equipo=self.equipo).count()
+            if total_jugadores >= Jugador.MAX_JUGADORES_POR_EQUIPO:
+                self.add_error(
+                    None,
+                    f'Este equipo ya alcanzó el máximo de {Jugador.MAX_JUGADORES_POR_EQUIPO} jugadores.'
+                )
+
         if fecha_nacimiento and self.equipo:
             valido, msg = validar_edad_categoria(fecha_nacimiento, self.equipo.categoria)
             if not valido:
