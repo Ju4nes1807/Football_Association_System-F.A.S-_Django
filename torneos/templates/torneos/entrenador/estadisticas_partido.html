@@ -63,7 +63,25 @@
                                         <div class="small text-muted">{{ fila.jugador.posicion|title }}</div>
                                     </td>
                                     <td>#{{ fila.jugador.dorsal }}</td>
-                                    <td><input type="number" min="0" class="form-control" name="goles_{{ fila.jugador.id }}" value="{{ fila.estadistica.goles|default:0 }}"></td>
+                                    {% if equipo == partido.equipo_local %}
+                                        {% with max_g=partido.goles_local %}
+                                        <td>
+                                            <input type="number" min="0" max="{{ max_g }}" class="form-control"
+                                                name="goles_{{ fila.jugador.id }}"
+                                                value="{{ fila.estadistica.goles|default:0 }}"
+                                                {% if max_g == 0 %}disabled title="El equipo no anotó goles en este partido"{% endif %}>
+                                        </td>
+                                        {% endwith %}
+                                    {% else %}
+                                        {% with max_g=partido.goles_visita %}
+                                        <td>
+                                            <input type="number" min="0" max="{{ max_g }}" class="form-control"
+                                                name="goles_{{ fila.jugador.id }}"
+                                                value="{{ fila.estadistica.goles|default:0 }}"
+                                                {% if max_g == 0 %}disabled title="El equipo no anotó goles en este partido"{% endif %}>
+                                        </td>
+                                        {% endwith %}
+                                    {% endif %}
                                     <td><input type="number" min="0" class="form-control" name="asistencias_{{ fila.jugador.id }}" value="{{ fila.estadistica.asistencias|default:0 }}"></td>
                                     <td><input type="number" min="0" class="form-control" name="amarillas_{{ fila.jugador.id }}" value="{{ fila.estadistica.tarjetas_amarillas|default:0 }}"></td>
                                     <td><input type="number" min="0" class="form-control" name="rojas_{{ fila.jugador.id }}" value="{{ fila.estadistica.tarjetas_rojas|default:0 }}"></td>

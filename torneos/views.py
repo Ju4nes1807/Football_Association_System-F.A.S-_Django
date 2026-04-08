@@ -859,35 +859,54 @@ def entrenador_estadisticas_partido(request, partido_id):
         ).select_related('jugador')
     }
 
+    # Goles máximos que puede registrar este equipo según el marcador
+    if equipo == partido.equipo_local:
+        max_goles_equipo = partido.goles_local
+    else:
+        max_goles_equipo = partido.goles_visita
+
     if request.method == 'POST':
-        procesados = 0
-        for jugador in jugadores:
-            goles = int(request.POST.get(f'goles_{jugador.id}', 0) or 0)
-            asistencias = int(request.POST.get(f'asistencias_{jugador.id}', 0) or 0)
-            amarillas = int(request.POST.get(f'amarillas_{jugador.id}', 0) or 0)
-            rojas = int(request.POST.get(f'rojas_{jugador.id}', 0) or 0)
-            minutos = int(request.POST.get(f'minutos_{jugador.id}', 0) or 0)
-
-            estadistica, _ = EstadisticaJugador.objects.update_or_create(
-                partido=partido,
-                jugador=jugador,
-                defaults={
-                    'equipo': equipo,
-                    'goles': goles,
-                    'asistencias': asistencias,
-                    'tarjetas_amarillas': amarillas,
-                    'tarjetas_rojas': rojas,
-                    'minutos_jugados': minutos,
-                }
-            )
-            estadisticas_existentes[jugador.id] = estadistica
-            procesados += 1
-
-        messages.success(
-            request,
-            f'Se guardaron las estadísticas de {procesados} jugador(es).'
+        # Validar que los goles ingresados no superen el marcador
+        total_goles_ingresados = sum(
+            int(request.POST.get(f'goles_{jugador.id}', 0) or 0)
+            for jugador in jugadores
         )
-        return redirect('torneos:entrenador_estadisticas_partido', partido_id=partido.id)
+
+        if total_goles_ingresados > max_goles_equipo:
+            messages.error(
+                request,
+                f'El marcador registra {max_goles_equipo} gol(es) para tu equipo, '
+                f'pero intentas registrar {total_goles_ingresados}. Ajusta los valores.'
+            )
+        else:
+            procesados = 0
+            for jugador in jugadores:
+                goles = int(request.POST.get(f'goles_{jugador.id}', 0) or 0)
+                asistencias = int(request.POST.get(f'asistencias_{jugador.id}', 0) or 0)
+                amarillas = int(request.POST.get(f'amarillas_{jugador.id}', 0) or 0)
+                rojas = int(request.POST.get(f'rojas_{jugador.id}', 0) or 0)
+                minutos = int(request.POST.get(f'minutos_{jugador.id}', 0) or 0)
+
+                estadistica, _ = EstadisticaJugador.objects.update_or_create(
+                    partido=partido,
+                    jugador=jugador,
+                    defaults={
+                        'equipo': equipo,
+                        'goles': goles,
+                        'asistencias': asistencias,
+                        'tarjetas_amarillas': amarillas,
+                        'tarjetas_rojas': rojas,
+                        'minutos_jugados': minutos,
+                    }
+                )
+                estadisticas_existentes[jugador.id] = estadistica
+                procesados += 1
+
+            messages.success(
+                request,
+                f'Se guardaron las estadísticas de {procesados} jugador(es).'
+            )
+            return redirect('torneos:entrenador_estadisticas_partido', partido_id=partido.id)
 
     jugadores_con_stats = []
     for jugador in jugadores:
