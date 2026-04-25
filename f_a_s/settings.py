@@ -69,6 +69,9 @@ DATABASES = {
         'PASSWORD': env('DATABASE_PASSWORD', default=''),
         'HOST': env('DATABASE_HOST', default='localhost'),
         'PORT': env('DATABASE_PORT', default='3306'),
+        'TEST': {
+            'NAME': env('TEST_DATABASE_NAME', default='test_fas_django'),
+        },
     }
 
 }
