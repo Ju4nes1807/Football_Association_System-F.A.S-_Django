@@ -125,3 +125,73 @@ class RegistrarEquipoViewTests(TestCase):
 		self.assertTemplateUsed(response, 'inscripciones/registrar_equipo.html')
 		self.assertContains(response, 'Ya existe un equipo con ese nombre.')
 		self.assertFalse(Equipo.objects.filter(entrenador=self.entrenador).exists())
+	
+class MiEquipoViewTests(TestCase):
+    URL_NAME = 'inscripciones:mi_equipo'
+    TEMPLATE = 'inscripciones/mi_equipo.html'
+
+    def setUp(self):
+        self.url = reverse(self.URL_NAME)
+
+        self.entrenador = Entrenador(
+            _nombres='Juan',
+            _apellidos='Pérez',
+            _num_documento='123456789',
+            _fecha_nacimiento=date(1990, 1, 1),
+            _email='entrenador@test.com',
+            _telefono='3001234567',
+            _rol=Usuario.Roles.ENTRENADOR,
+            _experiencia='5 años',
+            is_active=True,
+        )
+        self.entrenador.set_password('Test123*')
+        self.entrenador.save()
+
+        self.admin = Usuario(
+            _nombres='Admin',
+            _apellidos='Test',
+            _num_documento='987654321',
+            _fecha_nacimiento=date(1985, 1, 1),
+            _email='admin@test.com',
+            _telefono='3009876543',
+            _rol=Usuario.Roles.ADMIN,
+            is_active=True,
+            is_staff=True,
+        )
+        self.admin.set_password('Test123*')
+        self.admin.save()
+
+    def _get_response_as_entrenador(self):
+        self.client.force_login(self.entrenador)
+        return self.client.get(self.url)
+
+    def test_redirige_si_no_es_entrenador(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, reverse('dashboard_admin'))
+
+    def test_renderiza_equipo_si_entrenador_tiene_equipo(self):
+        equipo = Equipo.objects.create(
+            _nombre='Equipo Test',
+            _descripcion='desc',
+            _anio_fundacion=2010,
+            _categoria=Equipo.Categoria.SUB12,
+            _localidad='Suba',
+            _barrio='La Gaitana',
+            _estado=Equipo.Estado.APROBADO,
+            entrenador=self.entrenador,
+        )
+
+        response = self._get_response_as_entrenador()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, self.TEMPLATE)
+        self.assertEqual(response.context['equipo'], equipo)
+
+    def test_renderiza_equipo_none_si_entrenador_sin_equipo(self):
+        response = self._get_response_as_entrenador()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, self.TEMPLATE)
+        self.assertIsNone(response.context['equipo'])
