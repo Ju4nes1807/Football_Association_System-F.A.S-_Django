@@ -27,6 +27,10 @@ class Equipo(models.Model):
     _barrio         = models.CharField(max_length=100, db_column='barrio')
     _estado         = models.CharField(max_length=10, choices=Estado.choices, default=Estado.ESPERA, db_column='estado')
     _motivo_rechazo = models.TextField(db_column='motivo_rechazo', blank=True, null=True)
+    _fecha_rechazo = models.DateTimeField(db_column='fecha_rechazo', blank=True, null=True)
+    _bloqueado_hasta = models.DateTimeField(db_column='bloqueado_hasta', blank=True, null=True)
+    _eliminar_programada_para = models.DateTimeField(db_column='eliminar_programada_para', blank=True, null=True)
+    _motivo_eliminacion = models.TextField(db_column='motivo_eliminacion', blank=True, null=True)
     entrenador      = models.OneToOneField(Entrenador, on_delete=models.CASCADE, related_name='equipo')
     fecha_registro  = models.DateTimeField(auto_now_add=True)
 
@@ -109,6 +113,39 @@ class Equipo(models.Model):
     @motivo_rechazo.setter
     def motivo_rechazo(self, value):
         self._motivo_rechazo = value.strip() if value else None
+
+    @property
+    def fecha_rechazo(self):
+        return self._fecha_rechazo
+
+    @fecha_rechazo.setter
+    def fecha_rechazo(self, value):
+        self._fecha_rechazo = value
+
+    @property
+    def bloqueado_hasta(self):
+        return self._bloqueado_hasta
+
+    @bloqueado_hasta.setter
+    def bloqueado_hasta(self, value):
+        self._bloqueado_hasta = value
+
+    @property
+    def eliminar_programada_para(self):
+        return self._eliminar_programada_para
+
+    @eliminar_programada_para.setter
+    def eliminar_programada_para(self, value):
+        self._eliminar_programada_para = value
+
+    @property
+    def motivo_eliminacion(self):
+        return self._motivo_eliminacion
+
+    @motivo_eliminacion.setter
+    def motivo_eliminacion(self, value):
+        clean = value.strip() if value else ''
+        self._motivo_eliminacion = clean or None
 
     def __str__(self): return self._nombre
 

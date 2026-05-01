@@ -106,19 +106,50 @@
                             </span>
                         </div>
 
-                        {% if equipo.estado == 'ESPERA' %}
+                        {% if equipo.estado == 'ESPERA' and not equipo.eliminar_programada_para %}
                             <div class="alert alert-warning">
                                 <i class="fas fa-clock me-2"></i>Tu equipo está en espera de aprobación por parte del administrador.
                             </div>
                         {% elif equipo.estado == 'RECHAZADO' %}
                             <div class="alert alert-danger">
-        <i class="fas fa-times-circle me-2"></i>
-        Tu equipo fue rechazado. Puedes editarlo y volver a enviarlo.
-        {% if equipo.motivo_rechazo %}
-            <hr class="my-2">
-            <strong>Motivo:</strong> {{ equipo.motivo_rechazo }}
-        {% endif %}
-    </div>
+                                <i class="fas fa-times-circle me-2"></i>
+                                Tu equipo fue rechazado.
+                                {% if equipo.bloqueado_hasta %}
+                                    <div class="mt-2">
+                                        <strong>Bloqueado hasta:</strong> {{ equipo.bloqueado_hasta|date:"d/m/Y H:i" }}
+                                    </div>
+                                {% endif %}
+                                {% if equipo.eliminar_programada_para %}
+                                    <div class="mt-2">
+                                        <strong>Eliminación programada:</strong> {{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}
+                                    </div>
+                                {% endif %}
+                                {% if puede_editar %}
+                                    <div class="mt-2">Puedes editarlo y volver a enviarlo.</div>
+                                {% else %}
+                                    <div class="mt-2">No puedes editarlo por ahora.</div>
+                                {% endif %}
+                                {% if equipo.motivo_rechazo %}
+                                    <hr class="my-2">
+                                    <strong>Motivo:</strong> {{ equipo.motivo_rechazo }}
+                                {% endif %}
+                                {% if equipo.motivo_eliminacion %}
+                                    <div class="mt-2">
+                                        <strong>Motivo de eliminación:</strong> {{ equipo.motivo_eliminacion }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        {% if equipo.eliminar_programada_para and equipo.estado != 'RECHAZADO' %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-calendar-times me-2"></i>
+                                <strong>Eliminación programada:</strong> {{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}
+                                {% if equipo.motivo_eliminacion %}
+                                    <div class="mt-2">
+                                        <strong>Motivo:</strong> {{ equipo.motivo_eliminacion }}
+                                    </div>
+                                {% endif %}
+                            </div>
                         {% endif %}
 
                         <!-- Info del equipo -->
@@ -139,21 +170,33 @@
 
                         <!-- Acciones — CORREGIDO: urls con namespace -->
                         <div class="d-flex gap-2 mt-3 flex-wrap">
-                            <a href="{% url 'inscripciones:editar_equipo' equipo.id %}" class="btn btn-primary">
-                                <i class="fas fa-edit me-1"></i> Editar Equipo
-                            </a>
-                            <button type="button" class="btn btn-danger"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalConfirmacion"
-                                data-form-id="formEliminarEquipo"
-                                data-nombre="{{ equipo.nombre }}">
-                                <i class="fas fa-trash me-1"></i> Eliminar Equipo
-                            </button>
-                            <form id="formEliminarEquipo"
-                                action="{% url 'inscripciones:eliminar_equipo' equipo.id %}"
-                                method="POST" class="d-none">
-                                {% csrf_token %}
-                            </form>
+                            {% if puede_editar %}
+                                <a href="{% url 'inscripciones:editar_equipo' equipo.id %}" class="btn btn-primary">
+                                    <i class="fas fa-edit me-1"></i> Editar Equipo
+                                </a>
+                            {% else %}
+                                <button type="button" class="btn btn-secondary" disabled>
+                                    <i class="fas fa-edit me-1"></i> Editar Equipo
+                                </button>
+                            {% endif %}
+                            {% if equipo.eliminar_programada_para %}
+                                <button type="button" class="btn btn-danger" disabled>
+                                    <i class="fas fa-calendar-times me-1"></i> Eliminación programada
+                                </button>
+                            {% else %}
+                                <button type="button" class="btn btn-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalConfirmacion"
+                                    data-form-id="formEliminarEquipo"
+                                    data-nombre="{{ equipo.nombre }}">
+                                    <i class="fas fa-trash me-1"></i> Eliminar Equipo
+                                </button>
+                                <form id="formEliminarEquipo"
+                                    action="{% url 'inscripciones:eliminar_equipo' equipo.id %}"
+                                    method="POST" class="d-none">
+                                    {% csrf_token %}
+                                </form>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

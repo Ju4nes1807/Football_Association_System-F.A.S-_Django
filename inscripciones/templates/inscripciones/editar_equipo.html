@@ -61,6 +61,20 @@
             Al guardar los cambios el equipo volverá a estado <span class="font-semibold text-yellow-500">En espera</span> de aprobación.
         </p>
 
+        {% if equipo.estado == 'RECHAZADO' and equipo.bloqueado_hasta %}
+            <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg mb-4">
+                <strong>Bloqueado hasta:</strong> {{ equipo.bloqueado_hasta|date:"d/m/Y H:i" }}
+            </div>
+        {% endif %}
+        {% if equipo.eliminar_programada_para %}
+            <div class="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded-lg mb-4">
+                <strong>Eliminación programada:</strong> {{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}
+                {% if equipo.motivo_eliminacion %}
+                    <div class="mt-1"><strong>Motivo:</strong> {{ equipo.motivo_eliminacion }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
         {% if form.non_field_errors %}
             <div id="server-errors" hidden
                 data-msg="{% for e in form.non_field_errors %}{{ e }} {% endfor %}"
@@ -241,7 +255,7 @@
         const anioActual = new Date().getFullYear();
         const rules = {
             nombre(v)         { if (!v.trim()) return 'El nombre es obligatorio.'; if (v.trim().length < 3) return 'Mínimo 3 caracteres.'; return null; },
-            anio_fundacion(v) { if (!v) return 'El año es obligatorio.'; const a = parseInt(v); if (a < 1900 || a > anioActual) return `Entre 1900 y ${anioActual}.`; return null; },
+            anio_fundacion(v) { if (!v) return 'El año es obligatorio.'; const a = parseInt(v); if (a < 1960 || a > anioActual) return `Entre 1960 y ${anioActual}.`; return null; },
             categoria(v)      { if (!v) return 'Debes seleccionar una categoría.'; return null; },
             localidad(v)      { if (!v) return 'Debes seleccionar una localidad.'; return null; },
             barrio(v)         { if (!v) return 'Debes seleccionar un barrio.'; return null; },

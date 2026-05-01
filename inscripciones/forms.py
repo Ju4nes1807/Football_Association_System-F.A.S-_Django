@@ -45,8 +45,8 @@ class RegistroEquipoForm(forms.Form):
     
     def clean_anio_fundacion(self):
         anio = self.cleaned_data.get('anio_fundacion')
-        if anio < 1900 or anio > date.today().year:
-            raise forms.ValidationError(f'Año inválido. Entre 1900 y {date.today().year}.')
+        if anio < 1960 or anio > date.today().year:
+            raise forms.ValidationError(f'Año inválido. Entre 1960 y {date.today().year}.')
         return anio
     
     def clean_categoria(self):
@@ -81,8 +81,8 @@ class EditarEquipoForm(forms.Form):
 
     def clean_anio_fundacion(self):
         anio = self.cleaned_data.get('anio_fundacion')
-        if anio < 1900 or anio > date.today().year:
-            raise forms.ValidationError(f'Año inválido. Entre 1900 y {date.today().year}.')
+        if anio < 1960 or anio > date.today().year:
+            raise forms.ValidationError(f'Año inválido. Entre 1960 y {date.today().year}.')
         return anio
 
 class RegistroJugadorForm(forms.Form):

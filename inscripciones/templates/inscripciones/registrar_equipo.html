@@ -218,7 +218,7 @@
         const anioActual = new Date().getFullYear();
         const rules = {
             nombre(v)         { if (!v.trim()) return 'El nombre es obligatorio.'; if (v.trim().length < 3) return 'Mínimo 3 caracteres.'; return null; },
-            anio_fundacion(v) { if (!v) return 'El año es obligatorio.'; const a = parseInt(v); if (a < 1900 || a > anioActual) return `Entre 1900 y ${anioActual}.`; return null; },
+            anio_fundacion(v) { if (!v) return 'El año es obligatorio.'; const a = parseInt(v); if (a < 1960 || a > anioActual) return `Entre 1960 y ${anioActual}.`; return null; },
             categoria(v)      { if (!v) return 'Debes seleccionar una categoría.'; return null; },
             localidad(v)      { if (!v) return 'Debes seleccionar una localidad.'; return null; },
             barrio(v)         { if (!v) return 'Debes seleccionar un barrio.'; return null; },

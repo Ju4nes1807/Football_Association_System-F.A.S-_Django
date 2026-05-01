@@ -13,12 +13,14 @@ from .models import Equipo, Cancha
 from .forms import RegistroEquipoForm, EditarEquipoForm, RegistroJugadorForm, CargaMasivaJugadoresForm, EditarJugadorEntrenadorForm, EditarPerfilJugadorForm, CanchaForm, CargaMasivaCanchasForm
 import csv
 import io
-from datetime import date, datetime, time
+from datetime import date, datetime, timedelta
+import time
 import openpyxl
 from openpyxl.utils.datetime import from_excel
 from django.contrib.auth.hashers import make_password
 from accounts.models import Usuario, Jugador
 from django.contrib.auth import update_session_auth_hash
+from django.utils import timezone
 from .utils import validar_edad_categoria, _enviar_credenciales_jugador, geodificar_direccion, enviar_credenciales_jugadores_lote
 
 def _get_equipo_entrenador(user):
@@ -26,6 +28,31 @@ def _get_equipo_entrenador(user):
     if hasattr(user, 'entrenador'):
         return getattr(user.entrenador, 'equipo', None)
     return None
+
+
+def _agendar_eliminacion_equipo(request, equipo, motivo):
+    ahora = timezone.now()
+
+    if equipo.eliminar_programada_para and equipo.eliminar_programada_para > ahora:
+        messages.info(request, 'Este equipo ya tiene una eliminación programada.')
+        return False
+
+    motivo_limpio = (motivo or '').strip()
+    if equipo.estado == Equipo.Estado.APROBADO and not motivo_limpio:
+        messages.error(request, 'Debes indicar el motivo de la eliminación.')
+        return False
+
+    if not motivo_limpio:
+        if equipo.estado == Equipo.Estado.RECHAZADO and equipo.motivo_rechazo:
+            motivo_limpio = equipo.motivo_rechazo
+        else:
+            motivo_limpio = 'Eliminacion programada'
+
+    equipo.eliminar_programada_para = ahora + timedelta(days=3)
+    equipo.motivo_eliminacion = motivo_limpio
+    equipo.save()
+    messages.success(request, 'Eliminación programada para 3 días.')
+    return True
 
 
 @login_required
@@ -71,7 +98,18 @@ def mi_equipo(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
     equipo = _get_equipo_entrenador(request.user)
-    return render(request, 'inscripciones/mi_equipo.html', {'equipo': equipo})
+    puede_editar = True
+    if equipo:
+        ahora = timezone.now()
+        if equipo.eliminar_programada_para and ahora < equipo.eliminar_programada_para:
+            puede_editar = False
+        if equipo.estado == Equipo.Estado.RECHAZADO:
+            if equipo.bloqueado_hasta and ahora < equipo.bloqueado_hasta:
+                puede_editar = False
+    return render(request, 'inscripciones/mi_equipo.html', {
+        'equipo': equipo,
+        'puede_editar': puede_editar,
+    })
 
 
 @login_required
@@ -81,6 +119,16 @@ def editar_equipo(request, equipo_id):
     if request.user.rol != 'ENTRENADOR' or equipo.entrenador != request.user.entrenador:
         messages.error(request, 'No tienes permiso para editar este equipo.')
         return redirect('inscripciones:mi_equipo')
+
+    ahora = timezone.now()
+    if equipo.eliminar_programada_para and ahora < equipo.eliminar_programada_para:
+        messages.error(request, 'Este equipo tiene una eliminación programada.')
+        return redirect('inscripciones:mi_equipo')
+
+    if equipo.estado == Equipo.Estado.RECHAZADO:
+        if equipo.bloqueado_hasta and ahora < equipo.bloqueado_hasta:
+            messages.error(request, 'Este equipo está rechazado y no puede editarse todavía.')
+            return redirect('inscripciones:mi_equipo')
 
     form = EditarEquipoForm(
         request.POST or None,
@@ -109,6 +157,10 @@ def editar_equipo(request, equipo_id):
                 if data.get('logo'):
                     equipo.logo = data['logo']
                 equipo.estado = Equipo.Estado.ESPERA
+                equipo.motivo_rechazo = None
+                equipo.fecha_rechazo = None
+                equipo.bloqueado_hasta = None
+                equipo.eliminar_programada_para = None
                 equipo.save()
                 messages.success(request, 'Equipo actualizado. En espera de aprobación.')
                 return redirect('inscripciones:mi_equipo')
@@ -414,12 +466,23 @@ def eliminar_equipo(request, equipo_id):
         return redirect('inscripciones:mi_equipo')
 
     if request.method == 'POST':
-        nombre = equipo.nombre
-        equipo.delete()
-        messages.success(request, f'Equipo "{nombre}" eliminado correctamente.')
         if es_admin:
+            if equipo.eliminar_programada_para:
+                messages.error(request, 'Este equipo ya tiene una eliminación programada.')
+                return redirect('inscripciones:lista_equipos')
+
+            motivo = request.POST.get('motivo_eliminacion', '')
+            _agendar_eliminacion_equipo(request, equipo, motivo)
             return redirect('inscripciones:lista_equipos')
-        return redirect('dashboard_entrenador')
+
+        if es_dueno:
+            if equipo.eliminar_programada_para:
+                messages.error(request, 'Este equipo ya tiene una eliminación programada.')
+                return redirect('inscripciones:mi_equipo')
+            nombre = equipo.nombre
+            equipo.delete()
+            messages.success(request, f'Equipo "{nombre}" eliminado correctamente.')
+            return redirect('dashboard_entrenador')
 
     return render(request, 'inscripciones/confirmar_eliminar_equipo.html', {
         'equipo': equipo
@@ -467,6 +530,9 @@ def aprobar_equipo(request, equipo_id):
     if accion == 'aprobar':
         equipo.estado         = Equipo.Estado.APROBADO
         equipo.motivo_rechazo = None  # ← limpiar si había uno previo
+        equipo.fecha_rechazo = None
+        equipo.bloqueado_hasta = None
+        equipo.eliminar_programada_para = None
         messages.success(request, f'Equipo "{equipo.nombre}" aprobado.')
 
     elif accion == 'rechazar':
@@ -476,9 +542,26 @@ def aprobar_equipo(request, equipo_id):
             return redirect('inscripciones:lista_equipos')
         equipo.estado         = Equipo.Estado.RECHAZADO
         equipo.motivo_rechazo = motivo
+        equipo.fecha_rechazo = timezone.now()
+        equipo.bloqueado_hasta = timezone.now() + timedelta(days=15)
         messages.error(request, f'Equipo "{equipo.nombre}" rechazado.')
 
     equipo.save()
+    return redirect('inscripciones:lista_equipos')
+
+
+@login_required
+def programar_eliminacion_equipo(request, equipo_id):
+    if request.user.rol != 'ADMIN':
+        return redirect('dashboard_entrenador')
+
+    equipo = get_object_or_404(Equipo, id=equipo_id)
+
+    if request.method != 'POST':
+        return redirect('inscripciones:lista_equipos')
+
+    motivo = request.POST.get('motivo_eliminacion', '')
+    _agendar_eliminacion_equipo(request, equipo, motivo)
     return redirect('inscripciones:lista_equipos')
 
 @login_required

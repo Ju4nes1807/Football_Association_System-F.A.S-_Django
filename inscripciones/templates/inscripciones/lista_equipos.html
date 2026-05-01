@@ -173,7 +173,7 @@
 
                                 <!-- Acciones -->
 <div class="d-flex gap-2 mt-3 flex-wrap">
-    {% if equipo.estado == 'ESPERA' %}
+    {% if equipo.estado == 'ESPERA' and not equipo.eliminar_programada_para %}
 
         <!-- Aprobar directo -->
         <form method="POST" action="{% url 'inscripciones:aprobar_equipo' equipo.id %}">
@@ -195,19 +195,31 @@
 
     {% endif %}
 
-    <!-- Eliminar -->
-    <button type="button" class="btn btn-danger btn-sm"
-        data-bs-toggle="modal"
-        data-bs-target="#modalConfirmacion"
-        data-form-id="formEliminar_{{ equipo.id }}"
-        data-nombre="{{ equipo.nombre }}">
-        <i class="fas fa-trash"></i>
-    </button>
-    <form id="formEliminar_{{ equipo.id }}"
-        action="{% url 'inscripciones:eliminar_equipo' equipo.id %}"
-        method="POST" class="d-none">
-        {% csrf_token %}
-    </form>
+    {% if equipo.eliminar_programada_para %}
+        <span class="badge bg-danger align-self-center">
+            Eliminación: {{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}
+        </span>
+    {% endif %}
+
+    {% if equipo.eliminar_programada_para %}
+        <button type="button" class="btn btn-danger btn-sm" disabled>
+            <i class="fas fa-calendar-times"></i>
+        </button>
+    {% else %}
+        <button type="button" class="btn btn-danger btn-sm"
+            data-bs-toggle="modal"
+            data-bs-target="#modalConfirmacion"
+            data-form-id="formEliminar_{{ equipo.id }}"
+            data-nombre="{{ equipo.nombre }}">
+            <i class="fas fa-calendar-times"></i>
+        </button>
+        <form id="formEliminar_{{ equipo.id }}"
+            action="{% url 'inscripciones:eliminar_equipo' equipo.id %}"
+            method="POST" class="d-none">
+            {% csrf_token %}
+            <input type="hidden" name="motivo_eliminacion" value="">
+        </form>
+    {% endif %}
 </div>
 
 <!-- Motivo rechazo si existe -->
@@ -215,6 +227,22 @@
     <div class="alert alert-danger mt-2 mb-0 py-2 small">
         <i class="fas fa-exclamation-circle me-1"></i>
         <strong>Motivo:</strong> {{ equipo.motivo_rechazo }}
+    </div>
+{% endif %}
+
+{% if equipo.estado == 'RECHAZADO' and equipo.bloqueado_hasta %}
+    <div class="alert alert-warning mt-2 mb-0 py-2 small">
+        <i class="fas fa-clock me-1"></i>
+        <strong>Bloqueado hasta:</strong> {{ equipo.bloqueado_hasta|date:"d/m/Y H:i" }}
+    </div>
+{% endif %}
+{% if equipo.eliminar_programada_para %}
+    <div class="alert alert-danger mt-2 mb-0 py-2 small">
+        <i class="fas fa-calendar-times me-1"></i>
+        <strong>Eliminación programada:</strong> {{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}
+        {% if equipo.motivo_eliminacion %}
+            <div class="mt-1"><strong>Motivo:</strong> {{ equipo.motivo_eliminacion }}</div>
+        {% endif %}
     </div>
 {% endif %}
 
@@ -321,15 +349,19 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar eliminación</h5>
+                    <h5 class="modal-title"><i class="fas fa-calendar-times me-2"></i>Programar eliminación</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    ¿Estás seguro de que deseas eliminar el equipo <strong id="modal-nombre-equipo"></strong>? Esta acción no se puede deshacer.
+                    Se programará la eliminación del equipo <strong id="modal-nombre-equipo"></strong> en 3 días.
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">Motivo de eliminación (obligatorio si está aprobado)</label>
+                        <textarea id="motivo-eliminacion-text" class="form-control" rows="3" placeholder="Explica el motivo..."></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sí, eliminar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Programar</button>
                 </div>
             </div>
         </div>
@@ -366,10 +398,17 @@
             btn.addEventListener('click', () => {
                 formId = btn.getAttribute('data-form-id');
                 document.getElementById('modal-nombre-equipo').textContent = btn.getAttribute('data-nombre');
+                const motivo = document.getElementById('motivo-eliminacion-text');
+                if (motivo) motivo.value = '';
             });
         });
         document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
-            if (formId) document.getElementById(formId)?.submit();
+            if (!formId) return;
+            const form = document.getElementById(formId);
+            const motivo = document.getElementById('motivo-eliminacion-text')?.value || '';
+            const hiddenInput = form?.querySelector('input[name="motivo_eliminacion"]');
+            if (hiddenInput) hiddenInput.value = motivo;
+            form?.submit();
         });
 
         const djangoMsgs = document.getElementById('django-messages');
