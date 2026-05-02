@@ -1,4 +1,5 @@
 from datetime import date
+import re
 from .models import Cancha, Equipo
 from accounts.models import Jugador, Usuario
 from .utils import validar_edad_categoria
@@ -100,6 +101,34 @@ class RegistroJugadorForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.equipo = kwargs.pop('equipo', None)
         super().__init__(*args, **kwargs)
+
+    def clean_nombres(self):
+        nombres = (self.cleaned_data.get('nombres') or '').strip()
+        if not nombres or len(nombres) < 2:
+            raise forms.ValidationError('El nombre es obligatorio.')
+        if not re.match(r'^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$', nombres):
+            raise forms.ValidationError('Solo letras y espacios.')
+        return nombres
+
+    def clean_apellidos(self):
+        apellidos = (self.cleaned_data.get('apellidos') or '').strip()
+        if not apellidos or len(apellidos) < 2:
+            raise forms.ValidationError('Los apellidos son obligatorios.')
+        if not re.match(r'^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$', apellidos):
+            raise forms.ValidationError('Solo letras y espacios.')
+        return apellidos
+
+    def clean_fecha_nacimiento(self):
+        fecha = self.cleaned_data.get('fecha_nacimiento')
+        if not fecha:
+            return fecha
+        hoy = date.today()
+        if fecha > hoy:
+            raise forms.ValidationError('La fecha no puede ser futura.')
+        edad = hoy.year - fecha.year - ((hoy.month, hoy.day) < (fecha.month, fecha.day))
+        if edad > 100:
+            raise forms.ValidationError('Fecha inválida.')
+        return fecha
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -108,13 +137,17 @@ class RegistroJugadorForm(forms.Form):
         return email
     
     def clean_num_documento(self):
-        num = self.cleaned_data.get('num_documento')
+        num = (self.cleaned_data.get('num_documento') or '').strip()
+        if not re.match(r'^\d{6,12}$', num):
+            raise forms.ValidationError('Entre 6 y 12 dígitos numéricos.')
         if Usuario.objects.filter(_num_documento = num).exists():
             raise forms.ValidationError('Este documento ya esta registrado.')
         return num
     
     def clean_telefono(self):
-        tel = self.cleaned_data.get('telefono')
+        tel = (self.cleaned_data.get('telefono') or '').strip()
+        if not re.match(r'^3[0-9]{9}$', tel):
+            raise forms.ValidationError('Número colombiano válido (ej: 3001234567).')
         if Usuario.objects.filter(_telefono=tel).exists():
             raise forms.ValidationError('Este teléfono ya está registrado.')
         return tel

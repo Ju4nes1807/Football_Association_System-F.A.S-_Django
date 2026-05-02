@@ -1,4 +1,5 @@
 import json
+import re
 
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -10,7 +11,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from django.db import IntegrityError
 from .models import Equipo, Cancha
-from .forms import RegistroEquipoForm, EditarEquipoForm, RegistroJugadorForm, CargaMasivaJugadoresForm, EditarJugadorEntrenadorForm, EditarPerfilJugadorForm, CanchaForm, CargaMasivaCanchasForm
+from .forms import RegistroEquipoForm, EditarEquipoForm, RegistroJugadorForm, CargaMasivaJugadoresForm, EditarJugadorEntrenadorForm, EditarPerfilJugadorForm, CanchaForm, CargaMasivaCanchasForm, POSICIONES, PIES
 import csv
 import io
 from datetime import date, datetime, timedelta
@@ -494,9 +495,10 @@ def lista_equipos(request):
     if request.user.rol != 'ADMIN':
         return redirect('dashboard_entrenador')
 
-    nombre    = request.GET.get('nombre', '').strip()
-    localidad = request.GET.get('localidad', '').strip()
-    estado    = request.GET.get('estado', '').strip()
+    nombre      = request.GET.get('nombre', '').strip()
+    localidad   = request.GET.get('localidad', '').strip()
+    estado      = request.GET.get('estado', '').strip()
+    eliminacion = request.GET.get('eliminacion', '').strip()
 
     equipos = Equipo.objects.all().order_by('-fecha_registro')
     if nombre:
@@ -505,6 +507,8 @@ def lista_equipos(request):
         equipos = equipos.filter(_localidad__icontains=localidad)
     if estado:
         equipos = equipos.filter(_estado=estado)
+    if eliminacion == 'si':
+        equipos = equipos.filter(_eliminar_programada_para__isnull=False)
     
     paginator = Paginator(equipos, 12)
     page      = request.GET.get('page')
@@ -512,9 +516,10 @@ def lista_equipos(request):
 
     return render(request, 'inscripciones/lista_equipos.html', {
         'equipos':   equipos,
-        'nombre':    nombre,
-        'localidad': localidad,
-        'estado':    estado,
+        'nombre':      nombre,
+        'localidad':   localidad,
+        'estado':      estado,
+        'eliminacion': eliminacion,
         'estados':   Equipo.Estado.choices,
         'total': paginator.count,
     })
@@ -600,6 +605,11 @@ def registrar_jugador(request):
 
     if equipo.estado != 'APROBADO':
         messages.error(request, 'Tu equipo debe estar aprobado para registrar jugadores.')
+        return redirect('inscripciones:mi_equipo')
+
+    ahora = timezone.now()
+    if equipo.eliminar_programada_para and equipo.eliminar_programada_para > ahora:
+        messages.error(request, 'Este equipo tiene una eliminación programada y no puede registrar jugadores.')
         return redirect('inscripciones:mi_equipo')
 
     total_jugadores = Jugador.objects.filter(equipo=equipo).count()
@@ -691,6 +701,11 @@ def carga_masiva_jugadores(request):
 
     if equipo.estado != 'APROBADO':
         messages.error(request, 'Tu equipo debe estar aprobado para registrar jugadores.')
+        return redirect('inscripciones:mi_equipo')
+
+    ahora = timezone.now()
+    if equipo.eliminar_programada_para and equipo.eliminar_programada_para > ahora:
+        messages.error(request, 'Este equipo tiene una eliminación programada y no puede registrar jugadores.')
         return redirect('inscripciones:mi_equipo')
 
     total_jugadores = Jugador.objects.filter(equipo=equipo).count()
@@ -807,6 +822,56 @@ def _normalizar_fila_jugador(fila, equipo, num_fila):
     posicion = _obtener_valor_fila(fila, ['posicion', 'posición']).lower()
     password = _obtener_valor_fila(fila, ['password', 'contraseña', 'clave']) or 'Fas2024*'
 
+    def _first_error(validators):
+        for validator in validators:
+            msg = validator()
+            if msg:
+                return msg
+        return None
+
+    def _validar_texto(valor, msg_vacio):
+        texto = valor.strip()
+        if not texto:
+            return msg_vacio
+        if len(texto) < 2:
+            return 'Mínimo 2 caracteres.'
+        if not re.match(r'^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$', texto):
+            return 'Solo letras y espacios.'
+        return None
+
+    def _validar_regex(valor, patron, msg):
+        return None if re.match(patron, valor) else msg
+
+    def _validar_password(valor):
+        reglas = (
+            (len(valor) < 8, 'Mínimo 8 caracteres.'),
+            (not re.search(r'[A-Z]', valor), 'Debe incluir una mayúscula.'),
+            (not re.search(r'[0-9]', valor), 'Debe incluir un número.'),
+            (not re.search(r'[^a-zA-Z0-9]', valor), 'Debe incluir un carácter especial.'),
+        )
+        for condicion, mensaje in reglas:
+            if condicion:
+                return mensaje
+        return None
+
+    def _parsear_dorsal(valor):
+        try:
+            dorsal_val = int(float(valor))
+        except (TypeError, ValueError):
+            return None, f'Dorsal inválido "{valor}"'
+        if not 1 <= dorsal_val <= 99:
+            return None, 'El dorsal debe estar entre 1 y 99'
+        return dorsal_val, None
+
+    def _validar_fecha(fecha):
+        hoy = date.today()
+        if fecha > hoy:
+            return 'La fecha no puede ser futura.'
+        edad = hoy.year - fecha.year - ((hoy.month, hoy.day) < (fecha.month, fecha.day))
+        if edad > 100:
+            return 'Fecha inválida.'
+        return None
+
     campos_requeridos = {
         'nombres': nombres,
         'apellidos': apellidos,
@@ -823,15 +888,30 @@ def _normalizar_fila_jugador(fila, equipo, num_fila):
             faltantes.append('fecha_nacimiento')
         return None, f'Fila {num_fila}: Campos vacíos: {", ".join(faltantes)}'
 
-    try:
-        dorsal = int(float(dorsal_str))
-    except (TypeError, ValueError):
-        return None, f'Fila {num_fila}: Dorsal inválido "{dorsal_str}"'
+    pies_validos = {c[0] for c in PIES if c[0]}
+    posiciones_validas = {c[0] for c in POSICIONES if c[0]}
+    error = _first_error([
+        lambda: _validar_texto(nombres, 'El nombre es obligatorio.'),
+        lambda: _validar_texto(apellidos, 'Los apellidos son obligatorios.'),
+        lambda: _validar_regex(num_documento, r'^\d{6,12}$', 'Documento inválido. Entre 6 y 12 dígitos numéricos.'),
+        lambda: _validar_regex(email, r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$', 'Ingresa un correo válido.'),
+        lambda: _validar_regex(telefono, r'^3[0-9]{9}$', 'Número colombiano válido (ej: 3001234567).'),
+        lambda: None if pie_dominante in pies_validos else 'Selecciona una opción.',
+        lambda: None if posicion in posiciones_validas else 'Selecciona una posición.',
+        lambda: _validar_password(password),
+    ])
+    if error:
+        return None, f'Fila {num_fila}: {error}'
 
-    if dorsal < 1 or dorsal > 99:
-        return None, f'Fila {num_fila}: El dorsal debe estar entre 1 y 99'
+    dorsal, dorsal_error = _parsear_dorsal(dorsal_str)
+    if dorsal_error:
+        return None, f'Fila {num_fila}: {dorsal_error}'
 
     fecha_nacimiento, fecha_error = _parsear_fecha_nacimiento(fecha_raw)
+    if fecha_error:
+        return None, f'Fila {num_fila}: {fecha_error}'
+
+    fecha_error = _validar_fecha(fecha_nacimiento)
     if fecha_error:
         return None, f'Fila {num_fila}: {fecha_error}'
 
@@ -1431,7 +1511,7 @@ def lista_canchas_entrenador(request):
     
     todas_canchas = canchas
 
-    paginator = Paginator(canchas, 12)  # ← mayúscula
+    paginator = Paginator(canchas, 12)
     page      = request.GET.get('page')
     canchas   = paginator.get_page(page)
 
@@ -1447,7 +1527,7 @@ def lista_canchas_entrenador(request):
 
     return render(request, 'inscripciones/canchas/lista_canchas_entrenador.html', {
         'canchas':     canchas,
-        'total':       paginator.count,  # ← desde paginator, no canchas.count()
+        'total':       paginator.count,
         'nombre':      nombre,
         'localidad':   localidad,
         'disciplina':  disciplina,

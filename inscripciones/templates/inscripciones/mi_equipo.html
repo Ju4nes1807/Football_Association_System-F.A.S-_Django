@@ -99,10 +99,15 @@
                             </div>
                             <!-- Badge estado — CORREGIDO: usa equipo.estado sin guion bajo -->
                             <span class="ms-auto badge
-                                {% if equipo.estado == 'APROBADO' %}bg-success
+                                {% if equipo.eliminar_programada_para %}bg-danger
+                                {% elif equipo.estado == 'APROBADO' %}bg-success
                                 {% elif equipo.estado == 'RECHAZADO' %}bg-danger
                                 {% else %}bg-warning text-dark{% endif %} fs-6">
-                                {{ equipo.estado_display }}
+                                {% if equipo.eliminar_programada_para %}
+                                    Eliminación programada
+                                {% else %}
+                                    {{ equipo.estado_display }}
+                                {% endif %}
                             </span>
                         </div>
 
@@ -110,7 +115,7 @@
                             <div class="alert alert-warning">
                                 <i class="fas fa-clock me-2"></i>Tu equipo está en espera de aprobación por parte del administrador.
                             </div>
-                        {% elif equipo.estado == 'RECHAZADO' %}
+                        {% elif equipo.estado == 'RECHAZADO' and not equipo.eliminar_programada_para %}
                             <div class="alert alert-danger">
                                 <i class="fas fa-times-circle me-2"></i>
                                 Tu equipo fue rechazado.
@@ -140,7 +145,7 @@
                                 {% endif %}
                             </div>
                         {% endif %}
-                        {% if equipo.eliminar_programada_para and equipo.estado != 'RECHAZADO' %}
+                        {% if equipo.eliminar_programada_para %}
                             <div class="alert alert-danger">
                                 <i class="fas fa-calendar-times me-2"></i>
                                 <strong>Eliminación programada:</strong> {{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}

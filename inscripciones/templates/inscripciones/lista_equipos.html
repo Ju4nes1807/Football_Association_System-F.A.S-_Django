@@ -68,7 +68,7 @@
                             <div class="row g-3">
 
                                 <!-- Nombre -->
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-3">
                                     <label class="form-label fw-semibold">Nombre</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
@@ -78,7 +78,7 @@
                                 </div>
 
                                 <!-- Localidad -->
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-3">
                                     <label class="form-label fw-semibold">Localidad</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
@@ -88,13 +88,20 @@
                                 </div>
 
                                 <!-- Estado -->
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-3">
                                     <label class="form-label fw-semibold">Estado</label>
                                     <select name="estado" class="form-select">
                                         <option value="">Todos</option>
                                         {% for val, label in estados %}
                                             <option value="{{ val }}" {% if estado == val %}selected{% endif %}>{{ label }}</option>
                                         {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label fw-semibold">Eliminación</label>
+                                    <select name="eliminacion" class="form-select">
+                                        <option value="">Todos</option>
+                                        <option value="si" {% if eliminacion == 'si' %}selected{% endif %}>Programada</option>
                                     </select>
                                 </div>
                             </div>
@@ -112,7 +119,7 @@
                 </div>
 
                 <!-- TOTAL RESULTADOS -->
-                {% if nombre or localidad or estado %}
+                {% if nombre or localidad or estado or eliminacion %}
                     <p class="text-muted mb-3">
                         <i class="fas fa-info-circle me-1"></i>
                         {{ total }} resultado{{ total|pluralize }} encontrado{{ total|pluralize }}
@@ -148,10 +155,15 @@
                                 <p>
                                     <strong>Estado:</strong>
                                     <span class="badge
-                                        {% if equipo.estado == 'APROBADO' %}bg-success
+                                        {% if equipo.eliminar_programada_para %}bg-danger
+                                        {% elif equipo.estado == 'APROBADO' %}bg-success
                                         {% elif equipo.estado == 'RECHAZADO' %}bg-danger
                                         {% else %}bg-warning text-dark{% endif %}">
-                                        {{ equipo.estado_display }}
+                                        {% if equipo.eliminar_programada_para %}
+                                            Eliminación programada
+                                        {% else %}
+                                            {{ equipo.estado_display }}
+                                        {% endif %}
                                     </span>
                                 </p>
 
@@ -223,14 +235,14 @@
 </div>
 
 <!-- Motivo rechazo si existe -->
-{% if equipo.estado == 'RECHAZADO' and equipo.motivo_rechazo %}
+{% if equipo.estado == 'RECHAZADO' and equipo.motivo_rechazo and not equipo.eliminar_programada_para %}
     <div class="alert alert-danger mt-2 mb-0 py-2 small">
         <i class="fas fa-exclamation-circle me-1"></i>
         <strong>Motivo:</strong> {{ equipo.motivo_rechazo }}
     </div>
 {% endif %}
 
-{% if equipo.estado == 'RECHAZADO' and equipo.bloqueado_hasta %}
+{% if equipo.estado == 'RECHAZADO' and equipo.bloqueado_hasta and not equipo.eliminar_programada_para %}
     <div class="alert alert-warning mt-2 mb-0 py-2 small">
         <i class="fas fa-clock me-1"></i>
         <strong>Bloqueado hasta:</strong> {{ equipo.bloqueado_hasta|date:"d/m/Y H:i" }}
@@ -253,7 +265,7 @@
                     <div class="col-12">
                         <div class="alert alert-info text-center">
                             <i class="fas fa-info-circle me-2"></i>
-                            {% if nombre or localidad or estado %}
+                            {% if nombre or localidad or estado or eliminacion %}
                                 No se encontraron equipos con esos criterios.
                             {% else %}
                                 No hay equipos registrados.
@@ -268,7 +280,7 @@
                         <ul class="pagination">
                             {% if equipos.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ equipos.previous_page_number }}&nombre={{ nombre }}&localidad={{ localidad }}&estado={{ estado }}">
+                                <a class="page-link" href="?page={{ equipos.previous_page_number }}&nombre={{ nombre }}&localidad={{ localidad }}&estado={{ estado }}&eliminacion={{ eliminacion }}">
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
                             </li>
@@ -278,13 +290,13 @@
                                 <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                                 {% elif num > equipos.number|add:'-3' and num < equipos.number|add:'3' %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ num }}&nombre={{ nombre }}&localidad={{ localidad }}&estado={{ estado }}">{{ num }}</a>
+                                    <a class="page-link" href="?page={{ num }}&nombre={{ nombre }}&localidad={{ localidad }}&estado={{ estado }}&eliminacion={{ eliminacion }}">{{ num }}</a>
                                 </li>
                                 {% endif %}
                             {% endfor %}
                             {% if equipos.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ equipos.next_page_number }}&nombre={{ nombre }}&localidad={{ localidad }}&estado={{ estado }}">
+                                <a class="page-link" href="?page={{ equipos.next_page_number }}&nombre={{ nombre }}&localidad={{ localidad }}&estado={{ estado }}&eliminacion={{ eliminacion }}">
                                     <i class="fas fa-chevron-right"></i>
                                 </a>
                             </li>

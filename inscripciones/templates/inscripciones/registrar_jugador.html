@@ -236,18 +236,60 @@
             inp.closest('.field-group').classList.add('field-ok');
         }
 
-        const dominios = ['gmail.com','hotmail.com','outlook.com','yahoo.com','icloud.com','live.com'];
         const rules = {
-            nombres(v)          { if (!v.trim()) return 'Obligatorio.'; if (v.trim().length<2) return 'Mínimo 2 caracteres.'; return null; },
-            apellidos(v)        { if (!v.trim()) return 'Obligatorio.'; if (v.trim().length<2) return 'Mínimo 2 caracteres.'; return null; },
-            num_documento(v)    { if (!v.trim()) return 'Obligatorio.'; if (!/^\d{6,12}$/.test(v.trim())) return 'Entre 6 y 12 dígitos.'; return null; },
-            fecha_nacimiento(v) { if (!v) return 'Obligatorio.'; return null; },
-            email(v)            { if (!v.trim()) return 'Obligatorio.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Correo inválido.'; const dom=v.split('@')[1]?.toLowerCase(); if(!dominios.includes(dom)) return `Solo: ${dominios.join(', ')}`; return null; },
-            telefono(v)         { if (!v.trim()) return 'Obligatorio.'; if (!/^3[0-9]{9}$/.test(v.trim())) return 'Número colombiano (ej: 3001234567).'; return null; },
-            dorsal(v)           { if (!v) return 'Obligatorio.'; const d=parseInt(v); if(d<1||d>99) return 'Entre 1 y 99.'; return null; },
-            pie_dominante(v)    { if (!v) return 'Selecciona una opción.'; return null; },
-            posicion(v)         { if (!v) return 'Selecciona una posición.'; return null; },
-            password(v)         { if (!v) return 'Obligatorio.'; if(v.length<8) return 'Mínimo 8 caracteres.'; if(!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.'; if(!/[0-9]/.test(v)) return 'Debe incluir un número.'; if(!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.'; return null; },
+            nombres(v) {
+                if (!v.trim()) return 'El nombre es obligatorio.';
+                if (v.trim().length < 2) return 'Mínimo 2 caracteres.';
+                if (!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.';
+                return null;
+            },
+            apellidos(v) {
+                if (!v.trim()) return 'Los apellidos son obligatorios.';
+                if (v.trim().length < 2) return 'Mínimo 2 caracteres.';
+                if (!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.';
+                return null;
+            },
+            num_documento(v) {
+                if (!v.trim()) return 'El número de documento es obligatorio.';
+                if (!/^\d{6,12}$/.test(v.trim())) return 'Entre 6 y 12 dígitos numéricos.';
+                return null;
+            },
+            fecha_nacimiento(v) {
+                if (!v) return 'La fecha de nacimiento es obligatoria.';
+                const b = new Date(v);
+                const hoy = new Date();
+                let age = hoy.getFullYear() - b.getFullYear();
+                if (hoy.getMonth() - b.getMonth() < 0 || (hoy.getMonth() - b.getMonth() === 0 && hoy.getDate() < b.getDate())) age--;
+                if (b > hoy) return 'La fecha no puede ser futura.';
+                if (age > 100) return 'Fecha inválida.';
+                return null;
+            },
+            email(v) {
+                if (!v.trim()) return 'El correo es obligatorio.';
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido.';
+                return null;
+            },
+            telefono(v) {
+                if (!v.trim()) return 'El teléfono es obligatorio.';
+                if (!/^[3][0-9]{9}$/.test(v.trim())) return 'Número colombiano válido (ej: 3001234567).';
+                return null;
+            },
+            dorsal(v) {
+                if (!v) return 'Obligatorio.';
+                const d = parseInt(v);
+                if (d < 1 || d > 99) return 'Entre 1 y 99.';
+                return null;
+            },
+            pie_dominante(v) { if (!v) return 'Selecciona una opción.'; return null; },
+            posicion(v) { if (!v) return 'Selecciona una posición.'; return null; },
+            password(v) {
+                if (!v) return 'La contraseña es obligatoria.';
+                if (v.length < 8) return 'Mínimo 8 caracteres.';
+                if (!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.';
+                if (!/[0-9]/.test(v)) return 'Debe incluir un número.';
+                if (!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.';
+                return null;
+            },
         };
 
         function validateField(id) {

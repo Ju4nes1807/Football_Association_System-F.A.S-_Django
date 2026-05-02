@@ -88,6 +88,11 @@
                     <i class="fas fa-exclamation-triangle"></i>
                     <span>Necesitas <a href="{% url 'inscripciones:registrar_equipo' %}" class="fw-semibold">registrar un equipo</a> para inscribirte en torneos.</span>
                 </div>
+                {% elif equipo.eliminar_programada_para %}
+                <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+                    <i class="fas fa-calendar-times"></i>
+                    <span>Tu equipo <strong>{{ equipo.nombre }}</strong> tiene eliminación programada para <strong>{{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}</strong>.</span>
+                </div>
                 {% elif equipo.estado != 'APROBADO' %}
                 <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
                     <i class="fas fa-clock"></i>
@@ -167,7 +172,7 @@
                                     <p class="text-muted small mb-2" style="line-height:1.4;">{{ torneo.descripcion }}</p>
                                     {% endif %}
 
-                                    {% if equipo and equipo.estado == 'APROBADO' %}
+                                    {% if equipo and equipo.estado == 'APROBADO' and not equipo.eliminar_programada_para %}
                                     <form method="POST" action="{% url 'torneos:entrenador_inscribir' torneo.id %}">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-primary w-100 btn-sm">

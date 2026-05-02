@@ -17,7 +17,7 @@ class BaseTestMixin:
     def create_admin(self, idx=1):
         admin = Usuario(
             _nombres='Admin',
-            _apellidos=f'Test{idx}',
+            _apellidos='Test',
             _num_documento=f'9000000{idx}',
             _fecha_nacimiento=date(1985, 1, 1),
             _email=f'admin{idx}@test.com',
@@ -33,7 +33,7 @@ class BaseTestMixin:
     def create_entrenador(self, idx=1):
         entrenador = Entrenador(
             _nombres='Coach',
-            _apellidos=f'Test{idx}',
+            _apellidos='Test',
             _num_documento=f'8000000{idx}',
             _fecha_nacimiento=date(1990, 1, 1),
             _email=f'entrenador{idx}@test.com',
@@ -49,7 +49,7 @@ class BaseTestMixin:
     def create_jugador(self, idx=1, equipo=None):
         jugador = Jugador(
             _nombres='Jugador',
-            _apellidos=f'Test{idx}',
+            _apellidos='Test',
             _num_documento=f'7000000{idx}',
             _fecha_nacimiento=date(2010, 1, 1),
             _email=f'jugador{idx}@test.com',
@@ -108,7 +108,7 @@ class RegistrarEquipoViewTests(TestCase):
 	def _crear_entrenador(self, indice):
 		entrenador = Entrenador(
 			_nombres='Carlos',
-			_apellidos=f'Entrenador{indice}',
+            _apellidos='Entrenador',
 			_num_documento=f'12345678{indice}',
 			_fecha_nacimiento=date(1990, 1, 1),
 			_email=f'entrenador{indice}@test.com',
@@ -124,7 +124,7 @@ class RegistrarEquipoViewTests(TestCase):
 	def _crear_admin(self, indice):
 		admin = Usuario(
 			_nombres='Admin',
-			_apellidos=f'Prueba{indice}',
+            _apellidos='Prueba',
 			_num_documento=f'87654321{indice}',
 			_fecha_nacimiento=date(1985, 1, 1),
 			_email=f'admin{indice}@test.com',
@@ -482,7 +482,7 @@ class JugadorViewsTests(BaseTestMixin, TestCase):
     def _jugador_payload(self, idx=1):
         return {
             'nombres': 'Juan',
-            'apellidos': f'Perez{idx}',
+            'apellidos': 'Perez',
             'num_documento': f'1234567{idx}',
             'fecha_nacimiento': '2010-01-01',
             'email': f'jug{idx}@test.com',

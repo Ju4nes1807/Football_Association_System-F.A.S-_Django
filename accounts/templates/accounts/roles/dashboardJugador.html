@@ -64,6 +64,20 @@
                 <h2 class="mb-1">Bienvenido, {{ request.user.nombres }} {{ request.user.apellidos }}</h2>
                 <h6 class="text-muted mb-4">Jugador</h6>
 
+                {% if equipo and equipo.eliminar_programada_para %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-calendar-times me-2"></i>
+                        Tu equipo tiene eliminación programada para
+                        <strong>{{ equipo.eliminar_programada_para|date:"d/m/Y H:i" }}</strong>.
+                        Cuando se ejecute, tu usuario será eliminado del sistema por estar asociado al equipo.
+                        {% if equipo.motivo_eliminacion %}
+                            <div class="mt-2">
+                                <strong>Motivo:</strong> {{ equipo.motivo_eliminacion }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
                 <!-- Información del jugador -->
                 <div class="row mt-2">
                     <div class="col-12 mb-4">
@@ -107,10 +121,15 @@
                                 {% if equipo %}
                                     <p class="card-text"><strong>{{ equipo.nombre }}</strong></p>
                                     <span class="badge
-                                        {% if equipo.estado == 'APROBADO' %}bg-success
+                                        {% if equipo.eliminar_programada_para %}bg-danger
+                                        {% elif equipo.estado == 'APROBADO' %}bg-success
                                         {% elif equipo.estado == 'RECHAZADO' %}bg-danger
                                         {% else %}bg-warning text-dark{% endif %} mb-2">
-                                        {{ equipo.estado_display }}
+                                        {% if equipo.eliminar_programada_para %}
+                                            Eliminación programada
+                                        {% else %}
+                                            {{ equipo.estado_display }}
+                                        {% endif %}
                                     </span>
                                 {% else %}
                                     <p class="card-text text-muted">Sin equipo asignado</p>
