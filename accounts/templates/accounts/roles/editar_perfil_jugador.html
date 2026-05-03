@@ -105,26 +105,20 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
-                    <img src="{% static 'public/images/Logo.png' %}" alt="Logo"
-                        class="navbar-logo mr-2 rounded-full shadow-md">
-                    <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
-                </a>
-                <div class="flex items-center gap-4">
-                    <a href="{% url 'dashboard_jugador' %}"
-                        class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition duration-300 transform hover:scale-105">Regresar</a>
-                    <form method="POST" action="{% url 'logout' %}">
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-16 h-16 rounded-full shadow-md mr-2">
+                <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
+            </a>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'dashboard_jugador' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition duration-300 transform hover:scale-105 hidden md:inline">Regresar</a>
+                    <form method="POST" action="{% url 'logout' %}" class="hidden md:inline">
                         {% csrf_token %}
-                        <button type="submit"
-                            class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Cerrar
-                            sesión</button>
+                        <button type="submit" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Cerrar sesión</button>
                     </form>
                 </div>
                 <div class="md:hidden">
                     <button id="menu-button" type="button" class="text-white hover:text-gray-200 focus:outline-none">
-                        <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16" />
+                        <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
                     </button>
                 </div>
@@ -132,8 +126,11 @@
         </div>
         <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
             <div class="px-2 pt-2 pb-3">
-                <a href="{% url 'dashboard_jugador' %}"
-                    class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">Regresar</a>
+                <a href="{% url 'dashboard_jugador' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">Regresar</a>
+                <form method="POST" action="{% url 'logout' %}" class="pt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full text-white hover:bg-fas-blue/80 text-center font-medium py-2 px-3 rounded-md">Cerrar sesión</button>
+                </form>
             </div>
         </div>
     </nav>
@@ -144,31 +141,20 @@
         <h3 class="text-3xl font-extrabold text-fas-dark-blue text-center mb-1">Modificar Perfil</h3>
         <p class="text-center text-gray-400 text-sm mb-6">
             {{ request.user.nombres }} {{ request.user.apellidos }} —
-            <span class="font-semibold text-fas-blue">Jugador</span>
+            <span class="font-semibold text-fas-blue">{{ request.user.get_rol_display }}</span>
         </p>
 
-        <!-- Info no editable -->
-        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 text-sm text-gray-600 space-y-1">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Datos no editables
+        <!-- Player Info Display -->
+        <div class="bg-fas-gray-bg p-4 rounded-lg mb-6 border border-gray-200">
+            <p><span class="font-semibold">Dorsal:</span> #{{ request.user.jugador.dorsal }}</p>
+            <p><span class="font-semibold">Posición:</span> {{ request.user.jugador.posicion|title }}</p>
+            <p><span class="font-semibold">Pie:</span> {{ request.user.jugador.pie_dominante|title }}</p>
+            {% with equipo=request.user.jugador.equipo %}
+            <p>
+                <span class="font-semibold">Equipo:</span>
+                {% if equipo %}{{ equipo.nombre }}{% else %}Sin equipo{% endif %}
             </p>
-            <div class="grid grid-cols-2 gap-2">
-                <p><span class="font-semibold">Fecha nac.:</span> {{ request.user.fecha_nacimiento|date:"d/m/Y" }}</p>
-                <p><span class="font-semibold">Dorsal:</span> #{{ request.user.jugador.dorsal }}</p>
-                <p><span class="font-semibold">Posición:</span> {{ request.user.jugador.posicion|title }}</p>
-                <p><span class="font-semibold">Pie:</span> {{ request.user.jugador.pie_dominante|title }}</p>
-                {% with equipo=request.user.jugador.equipo %}
-                <p class="col-span-2">
-                    <span class="font-semibold">Equipo:</span>
-                    {% if equipo %}{{ equipo.nombre }}{% else %}Sin equipo{% endif %}
-                </p>
-                {% endwith %}
-            </div>
+            {% endwith %}
         </div>
 
         <form id="perfilForm" method="POST" action="{% url 'editar_jugador_perfil' %}" novalidate>
@@ -308,7 +294,6 @@
                                     d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z" />
                             </svg><span>{{ error }}</span></p>{% endfor %}
                     </div>
-
                     <!-- Contraseña nueva -->
                     <div class="field-group {% if form.password_nueva.errors %}field-error{% endif %}">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña nueva</label>
@@ -366,7 +351,7 @@
     <footer class="bg-fas-yellow py-4 shadow-xl mt-auto">
         <div class="container mx-auto px-4 flex items-center justify-between flex-col sm:flex-row">
             <div class="flex items-center space-x-3 mb-4 sm:mb-0">
-                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-12 h-12 rounded-full" />
+                <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-12 h-12 rounded-full"/>
                 <p class="text-gray-800 font-bold">F.A.S</p>
             </div>
             <p class="text-gray-700 text-sm">© Football Association System. Todos los derechos reservados</p>
@@ -415,12 +400,12 @@
                     inp.closest('.field-group').classList.add('field-ok');
                 }
 
-                const dominios = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'live.com'];
+                /* ── Rules ── */
                 const rules = {
                     nombres(v) { if (!v.trim()) return 'El nombre es obligatorio.'; if (v.trim().length < 2) return 'Mínimo 2 caracteres.'; if (!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.'; return null; },
                     apellidos(v) { if (!v.trim()) return 'Los apellidos son obligatorios.'; if (v.trim().length < 2) return 'Mínimo 2 caracteres.'; if (!/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/.test(v)) return 'Solo letras y espacios.'; return null; },
                     num_documento(v) { if (!v.trim()) return 'El número de documento es obligatorio.'; if (!/^\d{6,12}$/.test(v.trim())) return 'Entre 6 y 12 dígitos numéricos.'; return null; },
-                    email(v) { if (!v.trim()) return 'El correo es obligatorio.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido.'; const dom = v.split('@')[1]?.toLowerCase(); if (!dominios.includes(dom)) return `Solo: ${dominios.join(', ')}`; return null; },
+                    email(v) { if (!v.trim()) return 'El correo es obligatorio.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido.'; return null; },
                     telefono(v) { if (!v.trim()) return 'El teléfono es obligatorio.'; if (!/^[3][0-9]{9}$/.test(v.trim())) return 'Número colombiano válido (ej: 3001234567).'; return null; },
                     password_nueva(v) { if (!v) return null; if (v.length < 8) return 'Mínimo 8 caracteres.'; if (!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.'; if (!/[0-9]/.test(v)) return 'Debe incluir un número.'; if (!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.'; return null; },
                     password_actual(v) { const nueva = $('password_nueva')?.value; if (nueva && !v) return 'Debes ingresar tu contraseña actual.'; return null; },

@@ -108,9 +108,10 @@ def register_admin(request):
 @login_required
 def editar_perfil(request):
     user = request.user
+    es_entrenador = user.rol == user.Roles.ENTRENADOR
 
     if request.method == 'POST':
-        form = EditarPerfilForm(request.POST, initial_pk = user.pk)
+        form = EditarPerfilForm(request.POST, initial_pk = user.pk, es_entrenador = es_entrenador)
         if form.is_valid():
             data = form.cleaned_data
             try:
@@ -165,10 +166,10 @@ def editar_perfil(request):
             'telefono':         user.telefono,
             'fecha_nacimiento': user.fecha_nacimiento,
         }
-        if user.rol == user.Roles.ENTRENADOR:
+        if es_entrenador:
             initial['experiencia'] = user.entrenador.experiencia
 
-        form = EditarPerfilForm(initial=initial, initial_pk = user.pk)
+        form = EditarPerfilForm(initial=initial, initial_pk = user.pk, es_entrenador = es_entrenador)
 
     return render(request, 'accounts/roles/editar_perfil.html', {'form': form})
 @login_required

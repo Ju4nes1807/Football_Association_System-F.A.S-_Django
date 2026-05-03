@@ -166,7 +166,7 @@
                 <div class="field-group {% if form.fecha_nacimiento.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
                     <input type="date" id="fecha_nacimiento" name="fecha_nacimiento"
-                        value="{{ form.fecha_nacimiento.value|default:'' }}"
+                        value="{{ form.fecha_nacimiento.value|date:'Y-m-d'|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition">
                     <p class="invalid-feedback hidden" id="err-fecha_nacimiento"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
                     {% for error in form.fecha_nacimiento.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
@@ -316,8 +316,17 @@
             num_documento(v)    { if (!v.trim()) return 'El número de documento es obligatorio.'; if (!/^\d{6,12}$/.test(v.trim())) return 'Entre 6 y 12 dígitos numéricos.'; return null; },
             email(v)            { if (!v.trim()) return 'El correo es obligatorio.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Ingresa un correo válido.'; return null; },
             telefono(v)         { if (!v.trim()) return 'El teléfono es obligatorio.'; if (!/^[3][0-9]{9}$/.test(v.trim())) return 'Número colombiano válido (ej: 3001234567).'; return null; },
-            fecha_nacimiento(v) { if (!v) return 'La fecha de nacimiento es obligatoria.'; return null; },
-            experiencia(v)      { const el = $('experiencia'); if (el && !v.trim()) return 'La experiencia es obligatoria.'; return null; },
+            fecha_nacimiento(v) {
+                if (!v) return 'La fecha de nacimiento es obligatoria.';
+                const b = new Date(v), hoy = new Date();
+                let age = hoy.getFullYear() - b.getFullYear();
+                if (hoy.getMonth() - b.getMonth() < 0 || (hoy.getMonth() - b.getMonth() === 0 && hoy.getDate() < b.getDate())) age--;
+                if (b > hoy) return 'La fecha no puede ser futura.';
+                if (age < 20) return 'Debes tener al menos 20 años.';
+                if (age > 100) return 'Fecha inválida.';
+                return null;
+            },
+            experiencia(v)      { const el = $('experiencia'); if (el && !v.trim()) return 'La experiencia es obligatoria.'; if (el && v.trim().length > 15) return 'Máximo 15 caracteres.'; return null; },
             password_nueva(v)   { if (!v) return null; if (v.length<8) return 'Mínimo 8 caracteres.'; if (!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.'; if (!/[0-9]/.test(v)) return 'Debe incluir un número.'; if (!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.'; return null; },
             password_actual(v)  { const nueva = $('password_nueva')?.value; if (nueva && !v) return 'Debes ingresar tu contraseña actual.'; return null; },
         };

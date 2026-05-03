@@ -641,6 +641,20 @@ class CanchaViewsTests(BaseTestMixin, TestCase):
         self.assertTrue(Cancha.objects.filter(_nombre_escenario='Cancha Nueva').exists())
 
     @patch('inscripciones.views.geodificar_direccion', return_value=(1.0, 2.0))
+    def test_crear_cancha_duplicada_por_direccion(self, mock_geo):
+        self.create_cancha(1)
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('inscripciones:crear_cancha'),
+            data=self._cancha_payload('Cancha Repetida'),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ya existe una cancha con esa dirección exacta.')
+        self.assertEqual(Cancha.objects.filter(_direccion_exacta='Calle 1 #2-3').count(), 1)
+
+    @patch('inscripciones.views.geodificar_direccion', return_value=(1.0, 2.0))
     def test_editar_cancha_ok(self, mock_geo):
         cancha = self.create_cancha(1)
         url = reverse('inscripciones:editar_cancha', args=[cancha.id])
@@ -838,6 +852,25 @@ class HelperFunctionsTests(BaseTestMixin, TestCase):
         result = insc_views._procesar_fila_cancha(fila, 2)
         self.assertTrue(result['ok'])
         self.assertTrue(Cancha.objects.filter(_nombre_escenario='Cancha 1').exists())
+
+    def test_procesar_fila_cancha_rechaza_direccion_duplicada(self):
+        self.create_cancha(1)
+
+        fila = {
+            'nombre_escenario': 'Cancha 2',
+            'localidad': 'Suba',
+            'barrio': 'Niza',
+            'direccion_exacta': 'Calle 1 #2-3',
+            'tipo_disciplina': 'futbol 11',
+            'tipo_superficie': 'sintetica',
+            'medidas_area': '90x45',
+            'estado_conservacion': 'bueno',
+        }
+
+        result = insc_views._procesar_fila_cancha(fila, 3)
+        self.assertFalse(result['ok'])
+        self.assertIn('Ya existe una cancha con esa dirección exacta.', result['error'])
+        self.assertEqual(Cancha.objects.filter(_direccion_exacta='Calle 1 #2-3').count(), 1)
 
     def test_procesar_fila_cancha_faltantes(self):
         fila = {'nombre_escenario': 'Cancha 1'}

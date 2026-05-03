@@ -249,7 +249,7 @@ def geodificar_direccion(direccion):
     try:
         url = 'https://nominatim.openstreetmap.org/search'
 
-        query = f"{direccion}, Bogota, Colombia"
+        query = f"{direccion}, Bogotá, Colombia"
 
         params = {
             'q': query,

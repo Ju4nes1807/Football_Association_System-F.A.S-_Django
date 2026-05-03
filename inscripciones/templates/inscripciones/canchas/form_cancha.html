@@ -38,6 +38,21 @@
 
         <h3 class="text-3xl font-extrabold text-fas-dark-blue text-center mb-6">{{ titulo }}</h3>
 
+        {% if form.errors %}
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-sm">
+                <p class="font-bold">No se pudo guardar la cancha.</p>
+                {% if form.non_field_errors %}
+                    <ul class="mt-2 list-disc pl-5 text-sm space-y-1">
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="mt-2 text-sm">Revisa los campos marcados en rojo.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+
         {% if form.non_field_errors %}
             <div id="server-errors" hidden
                 data-msg="{% for e in form.non_field_errors %}{{ e }} {% endfor %}"
@@ -57,26 +72,31 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Escenario <span class="text-red-500">*</span></label>
                     <input type="text" id="nombre_escenario" name="nombre_escenario"
                         value="{{ form.nombre_escenario.value|default:'' }}"
+                        minlength="3" maxlength="150"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ej: Cancha Sintética El Jazmín">
-                    {% for error in form.nombre_escenario.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                    {% for error in form.nombre_escenario.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <!-- Código IDRD y RUPI en fila -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="field-group">
+                    <div class="field-group {% if form.codigo_idrd.errors %}field-error{% endif %}">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Código IDRD <span class="text-gray-400 font-normal">(opcional)</span></label>
                         <input type="text" id="codigo_idrd" name="codigo_idrd"
                             value="{{ form.codigo_idrd.value|default:'' }}"
+                            maxlength="50" pattern="[A-Za-z0-9-]+" title="Solo letras, numeros o guiones."
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                             placeholder="Código asignado por el IDRD">
+                        {% for error in form.codigo_idrd.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                     </div>
-                    <div class="field-group">
+                    <div class="field-group {% if form.codigo_rupi.errors %}field-error{% endif %}">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Código RUPI <span class="text-gray-400 font-normal">(opcional)</span></label>
                         <input type="text" id="codigo_rupi" name="codigo_rupi"
                             value="{{ form.codigo_rupi.value|default:'' }}"
+                            maxlength="50" pattern="[A-Za-z0-9-]+" title="Solo letras, numeros o guiones."
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                             placeholder="Registro Único Patrimonio Inmobiliario">
+                        {% for error in form.codigo_rupi.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                     </div>
                 </div>
 
@@ -89,7 +109,7 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition bg-white">
                         <option value="">Cargando localidades...</option>
                     </select>
-                    {% for error in form.localidad.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                    {% for error in form.localidad.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <!-- Barrio -->
@@ -99,7 +119,7 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition bg-white disabled:opacity-50">
                         <option value="">Selecciona una localidad primero</option>
                     </select>
-                    {% for error in form.barrio.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                    {% for error in form.barrio.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <!-- Dirección -->
@@ -109,7 +129,7 @@
                         value="{{ form.direccion_exacta.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ej: Cra 45 # 12-34">
-                    {% for error in form.direccion_exacta.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                    {% for error in form.direccion_exacta.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <p class="text-sm font-bold text-gray-500 uppercase tracking-wide border-b pb-1 mt-2">Características Técnicas</p>
@@ -126,7 +146,7 @@
                             <option value="FUTBOL_5"    {% if form.tipo_disciplina.value == 'FUTBOL_5'    %}selected{% endif %}>Fútbol 5</option>
                             <option value="MICROFUTBOL" {% if form.tipo_disciplina.value == 'MICROFUTBOL' %}selected{% endif %}>Microfútbol</option>
                         </select>
-                        {% for error in form.tipo_disciplina.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                        {% for error in form.tipo_disciplina.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                     </div>
                     <div class="field-group {% if form.tipo_superficie.errors %}field-error{% endif %}">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Superficie <span class="text-red-500">*</span></label>
@@ -138,7 +158,7 @@
                             <option value="ARENA"     {% if form.tipo_superficie.value == 'ARENA'     %}selected{% endif %}>Arena</option>
                             <option value="CEMENTO"   {% if form.tipo_superficie.value == 'CEMENTO'   %}selected{% endif %}>Cemento (Dura)</option>
                         </select>
-                        {% for error in form.tipo_superficie.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                        {% for error in form.tipo_superficie.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                     </div>
                 </div>
 
@@ -148,9 +168,12 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Medidas del Área <span class="text-red-500">*</span></label>
                         <input type="text" id="medidas_area" name="medidas_area"
                             value="{{ form.medidas_area.value|default:'' }}"
+                            maxlength="50" inputmode="decimal"
+                                pattern="^\d+(?:[.,]\d+)?\s*[xX]\s*\d+(?:[.,]\d+)?\s*(?:m|mts|metros)?$"
+                            title="Formato: largo x ancho en metros (ej: 90x45, 30x20m)."
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
-                            placeholder="Ej: 90m x 45m">
-                        {% for error in form.medidas_area.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                            placeholder="Ej: 90 x 45">
+                        {% for error in form.medidas_area.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                     </div>
                     <div class="field-group {% if form.estado_conservacion.errors %}field-error{% endif %}">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Estado de Conservación <span class="text-red-500">*</span></label>
@@ -162,7 +185,7 @@
                             <option value="MALO"    {% if form.estado_conservacion.value == 'MALO'    %}selected{% endif %}>Malo</option>
                             <option value="CRITICO" {% if form.estado_conservacion.value == 'CRITICO' %}selected{% endif %}>Crítico</option>
                         </select>
-                        {% for error in form.estado_conservacion.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                        {% for error in form.estado_conservacion.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                     </div>
                 </div>
 
@@ -172,8 +195,8 @@
                     <input type="number" id="capacidad_espectadores" name="capacidad_espectadores"
                         value="{{ form.capacidad_espectadores.value|default:'0' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
-                        min="0" placeholder="0 si no tiene gradería">
-                    {% for error in form.capacidad_espectadores.errors %}<p class="invalid-feedback"><span>{{ error }}</span></p>{% endfor %}
+                        min="0" max="1000" placeholder="0 si no tiene gradería">
+                    {% for error in form.capacidad_espectadores.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
 
                 <!-- Checkboxes -->
@@ -247,8 +270,92 @@
 
         function showToast(msg, type='success') {
             const t=$('toast'); $('toast-msg').textContent=msg; t.className=`show ${type}`;
-            $('toast-icon').innerHTML=type==='success'?`<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>`:`<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/>`;
+            $('toast-icon').innerHTML=type==='success'?`<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>`:`<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86l-8.2 14.2A1.5 1.5 0 003.38 20h17.24a1.5 1.5 0 001.3-2.24l-8.2-14.2a1.5 1.5 0 00-2.6 0z"/>`;
             clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.classList.remove('show'),4000);
+        }
+
+        function setClientError(el, msg) {
+            if (!el) return;
+            const group = el.closest('.field-group') || el.parentElement;
+            if (!group) return;
+            let error = group.querySelector('[data-client-error]');
+            if (msg) {
+                if (!error) {
+                    error = document.createElement('p');
+                    error.className = 'invalid-feedback';
+                    error.dataset.clientError = 'true';
+                    error.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span>';
+                    group.appendChild(error);
+                }
+                const text = error.querySelector('span');
+                if (text) {
+                    text.textContent = msg;
+                } else {
+                    error.textContent = msg;
+                }
+                el.style.borderColor = '#dc3545';
+                el.style.boxShadow = '0 0 0 2px rgba(220,53,69,.2)';
+            } else {
+                if (error) error.remove();
+                el.style.borderColor = '';
+                el.style.boxShadow = '';
+            }
+        }
+
+        const medidasRegex = /^(\d+(?:[.,]\d+)?)\s*[xX]\s*(\d+(?:[.,]\d+)?)\s*(?:m|mts|metros)?$/i;
+        const codigoRegex = /^[A-Za-z0-9-]+$/;
+
+        function normalizarDireccion(value) {
+    let v = String(value || '').trim().replace(/\s+/g, ' ');
+    v = v.replace(/\s*#\s*/g, ' # ');
+    v = v.replace(/\s*-\s*/g, '-');
+    return v.replace(/\s+/g, ' ').trim();
+}
+
+        const validators = {
+            nombre_escenario: value => value.length < 3 ? 'Minimo 3 caracteres.' : '',
+            localidad: value => !value ? 'Seleccione una localidad.' : '',
+            barrio: value => !value ? 'Seleccione un barrio.' : '',
+            direccion_exacta: value => {
+    const limpio = normalizarDireccion(value);
+    if (limpio.length < 6) return 'Mínimo 6 caracteres.';
+    if (!/\d/.test(limpio)) return 'La dirección debe incluir un número.';
+    return '';
+},
+            codigo_idrd: value => value && !codigoRegex.test(value) ? 'Solo letras, numeros o guiones.' : '',
+            codigo_rupi: value => value && !codigoRegex.test(value) ? 'Solo letras, numeros o guiones.' : '',
+            tipo_disciplina: value => !value ? 'Selecciona un tipo de disciplina.' : '',
+            tipo_superficie: value => !value ? 'Selecciona un tipo de superficie.' : '',
+            medidas_area: value => {
+                const match = medidasRegex.exec(value);
+                if (!match) return 'Formato: largo x ancho en metros (ej: 90x45).';
+                const largo = parseFloat(match[1].replace(',', '.'));
+                const ancho = parseFloat(match[2].replace(',', '.'));
+                if (Number.isNaN(largo) || Number.isNaN(ancho) || largo <= 0 || ancho <= 0) return 'Las medidas deben ser mayores a 0.';
+                if (largo > 200 || ancho > 200) return 'Las medidas parecen demasiado grandes.';
+                if (largo < 5 || ancho < 5) return 'Las medidas parecen demasiado pequenas.';
+                return '';
+            },
+            estado_conservacion: value => !value ? 'Selecciona el estado de conservacion.' : '',
+            capacidad_espectadores: value => {
+                if (value === '') return 'La capacidad es obligatoria';
+                const cap = parseInt(value, 10);
+                if (Number.isNaN(cap)) return 'Capacidad invalida.';
+                if (cap < 0) return 'La capacidad debe ser 0 o mas.';
+                if (cap > 1000) return 'La capacidad maxima es 1000.';
+                return '';
+            }
+        };
+
+        function validateField(id) {
+            const el = $(id);
+            if (!el) return true;
+            const value = String(el.value || '').trim();
+            const validator = validators[id];
+            if (!validator) return true;
+            const msg = validator(value);
+            setClientError(el, msg);
+            return !msg;
         }
 
         // Localidades y barrios
@@ -286,31 +393,46 @@
                     barrioSelect.appendChild(opt);
                 });
                 barrioSelect.disabled = false;
+                validateField('barrio');
             } catch(e) { barrioSelect.disabled = false; }
         }
 
         localidadSelect.addEventListener('change', function() {
             barrioSelect.innerHTML = '<option value="">Seleccione un barrio</option>';
             barrioSelect.disabled = true;
+            validateField('localidad');
+            validateField('barrio');
             if (this.value) cargarBarrios(this.value);
         });
 
-        // Validación submit
-        $('canchaForm').addEventListener('submit', e => {
-            const requeridos = ['nombre_escenario','localidad','barrio','direccion_exacta','tipo_disciplina','tipo_superficie','medidas_area','estado_conservacion'];
-            let valido = true;
-            requeridos.forEach(id => {
-                const el = $(id);
-                if (el && !el.value.trim()) {
-                    el.style.borderColor = '#dc3545';
-                    valido = false;
-                } else if (el) {
-                    el.style.borderColor = '';
+        Object.keys(validators).forEach(id => {
+            const el = $(id);
+            if (!el) return;
+            const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
+            el.addEventListener(eventName, () => validateField(id));
+            el.addEventListener('blur', () => {
+                if (id === 'direccion_exacta') {
+                    const normalizada = normalizarDireccion(el.value);
+                    if (normalizada !== el.value) {
+                        el.value = normalizada;
+                    }
                 }
+                validateField(id);
             });
-            if (!valido) {
+        });
+
+        // Validacion submit
+        $('canchaForm').addEventListener('submit', e => {
+            let firstError = null;
+            Object.keys(validators).forEach(id => {
+                const ok = validateField(id);
+                if (!ok && !firstError) firstError = id;
+            });
+            if (firstError) {
                 e.preventDefault();
-                showToast('Completa todos los campos obligatorios.', 'error');
+                showToast('Revisa los campos marcados en rojo.', 'error');
+                const el = $(firstError);
+                if (el && el.focus) el.focus();
             }
         });
 

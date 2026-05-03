@@ -2,7 +2,7 @@ from datetime import date
 import re
 from .models import Cancha, Equipo
 from accounts.models import Jugador, Usuario
-from .utils import validar_edad_categoria
+from .utils import geodificar_direccion, validar_edad_categoria
 from django import forms
 
 POSICIONES = [
@@ -234,21 +234,63 @@ class EditarPerfilJugadorForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.jugador_pk = kwargs.pop('jugador_pk', None)
         super().__init__(*args, **kwargs)
+
+    def clean_nombres(self):
+        nombres = (self.cleaned_data.get('nombres') or '').strip()
+        if not nombres:
+            raise forms.ValidationError('El nombre es obligatorio.')
+        if len(nombres) < 2:
+            raise forms.ValidationError('Mínimo 2 caracteres.')
+        if not re.match(r'^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$', nombres):
+            raise forms.ValidationError('Solo letras y espacios.')
+        return nombres
+
+    def clean_apellidos(self):
+        apellidos = (self.cleaned_data.get('apellidos') or '').strip()
+        if not apellidos:
+            raise forms.ValidationError('Los apellidos son obligatorios.')
+        if len(apellidos) < 2:
+            raise forms.ValidationError('Mínimo 2 caracteres.')
+        if not re.match(r'^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$', apellidos):
+            raise forms.ValidationError('Solo letras y espacios.')
+        return apellidos
+
+    def clean_num_documento(self):
+        num = (self.cleaned_data.get('num_documento') or '').strip()
+        if not num:
+            raise forms.ValidationError('El número de documento es obligatorio.')
+        if not re.match(r'^\d{6,12}$', num):
+            raise forms.ValidationError('Entre 6 y 12 dígitos numéricos.')
+        if Usuario.objects.filter(_num_documento = num).exclude(pk = self.jugador_pk).exists():
+            raise forms.ValidationError('El numero de documento ya esta registrado.')
+        return num
     
     def clean_email(self):
-        email = self.cleaned_data.get('email')
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+        if not email:
+            raise forms.ValidationError('El correo es obligatorio.')
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$', email):
+            raise forms.ValidationError('Ingresa un correo válido.')
         if Usuario.objects.filter(_email = email).exclude(pk = self.jugador_pk).exists():
             raise forms.ValidationError('El correo ya esta en uso.')
         return email
     
     def clean_num_documento(self):
-        num = self.cleaned_data.get('num_documento')
+        num = (self.cleaned_data.get('num_documento') or '').strip()
+        if not num:
+            raise forms.ValidationError('El número de documento es obligatorio.')
+        if not re.match(r'^\d{6,12}$', num):
+            raise forms.ValidationError('Entre 6 y 12 dígitos numéricos.')
         if Usuario.objects.filter(_num_documento = num).exclude(pk = self.jugador_pk).exists():
             raise forms.ValidationError('El numero de documento ya esta registrado.')
         return num
-    
+
     def clean_telefono(self):
-        tel = self.cleaned_data.get('telefono')
+        tel = (self.cleaned_data.get('telefono') or '').strip()
+        if not tel:
+            raise forms.ValidationError('El teléfono es obligatorio.')
+        if not re.match(r'^3[0-9]{9}$', tel):
+            raise forms.ValidationError('Número colombiano válido (ej: 3001234567).')
         if Usuario.objects.filter(_telefono = tel).exclude(pk = self.jugador_pk).exists():
             raise forms.ValidationError('El numero de telefono ya esta en uso.')
         return tel
@@ -292,11 +334,65 @@ class CanchaForm(forms.Form):
     capacidad_espectadores = forms.IntegerField(min_value=0, initial=0)
     observaciones_tecnicas = forms.CharField(widget=forms.Textarea, required=False)
 
+    def __init__(self, *args, **kwargs):
+        self.cancha_pk = kwargs.pop('cancha_pk', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_codigo_idrd(self):
+        codigo = (self.cleaned_data.get('codigo_idrd') or '').strip()
+        if not codigo:
+            return None
+        if not re.match(r'^[A-Za-z0-9-]+$', codigo):
+            raise forms.ValidationError('Solo letras, números o guiones.')
+        qs = Cancha.objects.filter(_codigo_idrd__iexact=codigo)
+        if self.cancha_pk:
+            qs = qs.exclude(pk=self.cancha_pk)
+        if qs.exists():
+            raise forms.ValidationError('Ya existe una cancha con ese código IDRD.')
+        return codigo
+
     def clean_nombre_escenario(self):
-        nombre = self.cleaned_data.get('nombre_escenario')
-        if len(nombre.strip()) < 3:
+        nombre = (self.cleaned_data.get('nombre_escenario') or '').strip()
+        if len(nombre) < 3:
             raise forms.ValidationError('Mínimo 3 caracteres.')
         return nombre
+
+    def clean_localidad(self):
+        localidad = (self.cleaned_data.get('localidad') or '').strip()
+        if len(localidad) < 2:
+            raise forms.ValidationError('Mínimo 2 caracteres.')
+        if not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s\-.#]+$', localidad):
+            raise forms.ValidationError('Solo letras, números, espacios, guiones o puntos.')
+        return localidad
+
+    def clean_barrio(self):
+        barrio = (self.cleaned_data.get('barrio') or '').strip()
+        if len(barrio) < 2:
+            raise forms.ValidationError('Mínimo 2 caracteres.')
+        if not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s\-.#]+$', barrio):
+            raise forms.ValidationError('Solo letras, números, espacios, guiones o puntos.')
+        return barrio
+
+    def clean_direccion_exacta(self):
+        direccion = (self.cleaned_data.get('direccion_exacta') or '').strip()
+        if len(direccion) < 6:
+            raise forms.ValidationError('Mínimo 6 caracteres.')
+        if not re.search(r'\d', direccion):
+            raise forms.ValidationError('La dirección debe incluir un número.')
+        return re.sub(r'\s+', ' ', direccion).strip()
+
+    def clean_codigo_rupi(self):
+        codigo = (self.cleaned_data.get('codigo_rupi') or '').strip()
+        if not codigo:
+            return None
+        if not re.match(r'^[A-Za-z0-9-]+$', codigo):
+            raise forms.ValidationError('Solo letras, números o guiones.')
+        qs = Cancha.objects.filter(_codigo_rupi__iexact=codigo)
+        if self.cancha_pk:
+            qs = qs.exclude(pk=self.cancha_pk)
+        if qs.exists():
+            raise forms.ValidationError('Ya existe una cancha con ese código RUPI.')
+        return codigo
 
     def clean_tipo_disciplina(self):
         val = self.cleaned_data.get('tipo_disciplina')
@@ -315,6 +411,50 @@ class CanchaForm(forms.Form):
         if not val:
             raise forms.ValidationError('Selecciona el estado de conservación.')
         return val
+
+    def clean_medidas_area(self):
+        valor = (self.cleaned_data.get('medidas_area') or '').strip()
+        if not valor:
+            raise forms.ValidationError('Las medidas son obligatorias.')
+        match = re.match(
+            r'^(\d+(?:[.,]\d+)?)\s*[xX]\s*(\d+(?:[.,]\d+)?)\s*(?:m|mts|metros)?$',
+            valor,
+            re.IGNORECASE
+        )
+        if not match:
+            raise forms.ValidationError('Formato esperado: largo x ancho en metros (ej: 90x45).')
+        largo = float(match.group(1).replace(',', '.'))
+        ancho = float(match.group(2).replace(',', '.'))
+        if largo <= 0 or ancho <= 0:
+            raise forms.ValidationError('Las medidas deben ser mayores a 0.')
+        if largo > 200 or ancho > 200:
+            raise forms.ValidationError('Las medidas parecen demasiado grandes.')
+        if largo < 5 or ancho < 5:
+            raise forms.ValidationError('Las medidas parecen demasiado pequeñas.')
+        return f'{largo:g}x{ancho:g}'
+
+    def clean_capacidad_espectadores(self):
+        capacidad = self.cleaned_data.get('capacidad_espectadores')
+        if capacidad is None:
+            return capacidad
+        if capacidad > 1000:
+            raise forms.ValidationError('La capacidad parece demasiado alta.')
+        return capacidad
+
+    def clean(self):
+        cleaned_data = super().clean()
+        direccion = cleaned_data.get('direccion_exacta')
+
+        if direccion:
+            qs = Cancha.objects.filter(_direccion_exacta__iexact=direccion)
+            if self.cancha_pk:
+                qs = qs.exclude(pk=self.cancha_pk)
+            if qs.exists():
+                mensaje = 'Ya existe una cancha con esa dirección exacta.'
+                self.add_error('direccion_exacta', mensaje)
+                self.add_error(None, mensaje)
+
+        return cleaned_data
 
 
 class CargaMasivaCanchasForm(forms.Form):

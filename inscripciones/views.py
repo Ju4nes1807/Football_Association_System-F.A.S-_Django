@@ -1266,6 +1266,7 @@ def editar_cancha(request, cancha_id):
     cancha = get_object_or_404(Cancha, id=cancha_id)
     form   = CanchaForm(
         request.POST or None,
+        cancha_pk=cancha_id,
         initial={
             'codigo_idrd':            cancha.codigo_idrd,
             'nombre_escenario':       cancha.nombre_escenario,
@@ -1461,21 +1462,49 @@ def _procesar_fila_cancha(fila, num_fila):
         tipo_superficie_val    = superficie_map.get(tipo_superficie.lower(), tipo_superficie.upper())
         estado_conservacion_val = conservacion_map.get(estado_conservacion.lower(), estado_conservacion.upper())
 
+        datos_cancha = {
+            'codigo_idrd': codigo_idrd,
+            'nombre_escenario': nombre_escenario,
+            'localidad': localidad,
+            'barrio': barrio,
+            'direccion_exacta': direccion_exacta,
+            'codigo_rupi': codigo_rupi,
+            'tipo_disciplina': tipo_disciplina_val,
+            'tipo_superficie': tipo_superficie_val,
+            'medidas_area': medidas_area,
+            'estado_conservacion': estado_conservacion_val,
+            'tiene_iluminacion': tiene_iluminacion,
+            'tiene_cerramiento': tiene_cerramiento,
+            'capacidad_espectadores': int(float(capacidad_str)) if capacidad_str else 0,
+            'observaciones_tecnicas': observaciones,
+        }
+
+        form = CanchaForm(datos_cancha)
+        if not form.is_valid():
+            errores = []
+            for campo, mensajes in form.errors.items():
+                for mensaje in mensajes:
+                    if campo == '__all__':
+                        errores.append(str(mensaje))
+                    else:
+                        errores.append(f'{campo}: {mensaje}')
+            return {'ok': False, 'error': f'Fila {num_fila}: {"; ".join(errores)}'}
+
         cancha = Cancha()
-        cancha.codigo_idrd            = codigo_idrd or None
-        cancha.nombre_escenario       = nombre_escenario
-        cancha.localidad              = localidad
-        cancha.barrio                 = barrio
-        cancha.direccion_exacta       = direccion_exacta
-        cancha.codigo_rupi            = codigo_rupi or None
-        cancha.tipo_disciplina        = tipo_disciplina_val
-        cancha.tipo_superficie        = tipo_superficie_val
-        cancha.medidas_area           = medidas_area
-        cancha.estado_conservacion    = estado_conservacion_val
-        cancha.tiene_iluminacion      = tiene_iluminacion
-        cancha.tiene_cerramiento      = tiene_cerramiento
-        cancha.capacidad_espectadores = int(float(capacidad_str)) if capacidad_str else 0
-        cancha.observaciones_tecnicas = observaciones or None
+        cancha.codigo_idrd            = form.cleaned_data.get('codigo_idrd')
+        cancha.nombre_escenario       = form.cleaned_data['nombre_escenario']
+        cancha.localidad              = form.cleaned_data['localidad']
+        cancha.barrio                 = form.cleaned_data['barrio']
+        cancha.direccion_exacta       = form.cleaned_data['direccion_exacta']
+        cancha.codigo_rupi            = form.cleaned_data.get('codigo_rupi')
+        cancha.tipo_disciplina        = form.cleaned_data['tipo_disciplina']
+        cancha.tipo_superficie        = form.cleaned_data['tipo_superficie']
+        cancha.medidas_area           = form.cleaned_data['medidas_area']
+        cancha.estado_conservacion    = form.cleaned_data['estado_conservacion']
+        cancha.tiene_iluminacion      = form.cleaned_data.get('tiene_iluminacion', False)
+        cancha.tiene_cerramiento      = form.cleaned_data.get('tiene_cerramiento', False)
+        cancha.capacidad_espectadores = form.cleaned_data['capacidad_espectadores']
+        cancha.observaciones_tecnicas = form.cleaned_data.get('observaciones_tecnicas')
         lat, lng = geodificar_direccion(cancha.direccion_exacta)
         cancha.latitud = lat
         cancha.longitud = lng

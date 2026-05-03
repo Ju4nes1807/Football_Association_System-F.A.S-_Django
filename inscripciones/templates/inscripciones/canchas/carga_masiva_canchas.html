@@ -53,6 +53,9 @@
                         <div class="card border-0 shadow-sm">
                             <div class="card-body">
                                 <h5 class="card-title"><i class="fas fa-upload me-2 text-primary"></i>Subir Archivo</h5>
+                                <div class="alert alert-warning small mb-3" role="alert">
+                                    Las canchas con dirección exacta repetida se rechazarán automáticamente.
+                                </div>
                                 <form method="POST" enctype="multipart/form-data">
                                     {% csrf_token %}
                                     <div class="mb-3">
