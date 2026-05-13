@@ -7,6 +7,7 @@ urlpatterns = [
     # Admin — torneos
     path('admin/',                                     views.admin_lista_torneos,       name='admin_lista_torneos'),
     path('admin/crear/',                               views.admin_crear_torneo,        name='admin_crear_torneo'),
+    path('admin/canchas-disponibles/',                 views.admin_canchas_disponibles, name='admin_canchas_disponibles'),
     path('admin/<int:torneo_id>/editar/',              views.admin_editar_torneo,       name='admin_editar_torneo'),
     path('admin/<int:torneo_id>/eliminar/',            views.admin_eliminar_torneo,     name='admin_eliminar_torneo'),
     path('admin/<int:torneo_id>/detalle/',             views.admin_detalle_torneo,      name='admin_detalle_torneo'),

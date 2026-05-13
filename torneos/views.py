@@ -7,7 +7,7 @@ from datetime import date
 
 from .models import Torneo, InscripcionTorneo, Partido, EstadisticaJugador
 from .forms import TorneoForm, PartidoForm, EstadisticaForm
-from inscripciones.models import Equipo
+from inscripciones.models import Cancha, Equipo
 from accounts.models import Jugador
 
 
@@ -302,6 +302,32 @@ def admin_crear_torneo(request):
         return redirect('torneos:admin_lista_torneos')
 
     return render(request, 'torneos/admin/crear_torneo.html', {'form': form})
+
+
+@login_required
+def admin_canchas_disponibles(request):
+    if request.user.rol != 'ADMIN':
+        return JsonResponse({'canchas': []}, status=403)
+
+    canchas = Cancha.objects.filter(
+        _disponibilidad=Cancha.Disponibilidad.DISPONIBLE
+    ).order_by('_nombre_escenario')
+
+    return JsonResponse({
+        'canchas': [
+            {
+                'id': cancha.id,
+                'nombre': cancha.nombre_escenario,
+                'direccion': cancha.direccion_exacta,
+                'localidad': cancha.localidad,
+                'barrio': cancha.barrio,
+                'lat': cancha.latitud,
+                'lng': cancha.longitud,
+                'ubicacion': f'{cancha.nombre_escenario} - {cancha.direccion_exacta}',
+            }
+            for cancha in canchas
+        ]
+    })
 
 
 @login_required
