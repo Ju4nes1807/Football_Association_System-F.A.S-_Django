@@ -164,7 +164,7 @@
                 <!-- Nombres -->
                 <div class="field-group {% if form.nombres.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nombres</label>
-                    <input type="text" id="nombres" name="nombres" value="{{ form.nombres.value|default:'' }}"
+                    <input type="text" id="nombres" name="nombres" maxlength="30" value="{{ form.nombres.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ingrese sus nombres">
                     <p class="invalid-feedback hidden" id="err-nombres"><svg xmlns="http://www.w3.org/2000/svg"
@@ -183,7 +183,7 @@
                 <!-- Apellidos -->
                 <div class="field-group {% if form.apellidos.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Apellidos</label>
-                    <input type="text" id="apellidos" name="apellidos" value="{{ form.apellidos.value|default:'' }}"
+                    <input type="text" id="apellidos" name="apellidos" maxlength="30" value="{{ form.apellidos.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ingrese sus apellidos">
                     <p class="invalid-feedback hidden" id="err-apellidos"><svg xmlns="http://www.w3.org/2000/svg"

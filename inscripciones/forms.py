@@ -28,8 +28,8 @@ PIES = [
 ]
 
 class RegistroEquipoForm(forms.Form):
-    nombre = forms.CharField(max_length = 100)
-    descripcion = forms.CharField(widget = forms.Textarea, required = False)
+    nombre = forms.CharField(max_length = 60)
+    descripcion = forms.CharField(max_length = 500, widget = forms.Textarea, required = False)
     anio_fundacion = forms.IntegerField()
     logo = forms.ImageField(required = False)
     categoria = forms.ChoiceField(
@@ -39,7 +39,9 @@ class RegistroEquipoForm(forms.Form):
     barrio = forms.CharField(max_length = 100)
 
     def clean_nombre(self):
-        nombre = self.cleaned_data.get('nombre')
+        nombre = (self.cleaned_data.get('nombre') or '').strip()
+        if nombre and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', nombre):
+            raise forms.ValidationError('Solo letras, números y espacios.')
         if Equipo.objects.filter(_nombre__iexact=nombre).exists():
             raise forms.ValidationError('Ya existe un equipo con ese nombre.')
         return nombre
@@ -56,9 +58,21 @@ class RegistroEquipoForm(forms.Form):
             raise forms.ValidationError('Debes seleccionar una categoría.')
         return cat
 
+    def clean_localidad(self):
+        localidad = (self.cleaned_data.get('localidad') or '').strip()
+        if localidad and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', localidad):
+            raise forms.ValidationError('Solo letras, números y espacios.')
+        return localidad
+
+    def clean_barrio(self):
+        barrio = (self.cleaned_data.get('barrio') or '').strip()
+        if barrio and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', barrio):
+            raise forms.ValidationError('Solo letras, números y espacios.')
+        return barrio
+
 class EditarEquipoForm(forms.Form):
-    nombre         = forms.CharField(max_length=100)
-    descripcion    = forms.CharField(widget=forms.Textarea, required=False)
+    nombre         = forms.CharField(max_length=60)
+    descripcion    = forms.CharField(max_length=500, widget=forms.Textarea, required=False)
     anio_fundacion = forms.IntegerField()
     logo           = forms.ImageField(required=False)
     categoria      = forms.ChoiceField(
@@ -72,7 +86,9 @@ class EditarEquipoForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_nombre(self):
-        nombre = self.cleaned_data.get('nombre')
+        nombre = (self.cleaned_data.get('nombre') or '').strip()
+        if nombre and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', nombre):
+            raise forms.ValidationError('Solo letras, números y espacios.')
         qs = Equipo.objects.filter(_nombre__iexact=nombre)
         if self.equipo_pk:
             qs = qs.exclude(pk=self.equipo_pk)
@@ -86,9 +102,21 @@ class EditarEquipoForm(forms.Form):
             raise forms.ValidationError(f'Año inválido. Entre 1960 y {date.today().year}.')
         return anio
 
+    def clean_localidad(self):
+        localidad = (self.cleaned_data.get('localidad') or '').strip()
+        if localidad and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', localidad):
+            raise forms.ValidationError('Solo letras, números y espacios.')
+        return localidad
+
+    def clean_barrio(self):
+        barrio = (self.cleaned_data.get('barrio') or '').strip()
+        if barrio and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', barrio):
+            raise forms.ValidationError('Solo letras, números y espacios.')
+        return barrio
+
 class RegistroJugadorForm(forms.Form):
-    nombres = forms.CharField(max_length = 50)
-    apellidos = forms.CharField(max_length = 50)
+    nombres = forms.CharField(max_length = 30)
+    apellidos = forms.CharField(max_length = 30)
     num_documento = forms.CharField()
     fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     email = forms.EmailField()
@@ -223,8 +251,8 @@ class EditarJugadorEntrenadorForm(forms.Form):
         return dorsal
 
 class EditarPerfilJugadorForm(forms.Form):
-    nombres = forms.CharField(max_length = 50)
-    apellidos = forms.CharField(max_length = 50)
+    nombres = forms.CharField(max_length = 30)
+    apellidos = forms.CharField(max_length = 30)
     num_documento = forms.CharField()
     email = forms.EmailField()
     telefono = forms.CharField(max_length = 20)
@@ -332,7 +360,7 @@ class CanchaForm(forms.Form):
     tiene_iluminacion     = forms.BooleanField(required=False)
     tiene_cerramiento     = forms.BooleanField(required=False)
     capacidad_espectadores = forms.IntegerField(min_value=0, initial=0)
-    observaciones_tecnicas = forms.CharField(widget=forms.Textarea, required=False)
+    observaciones_tecnicas = forms.CharField(max_length=500, widget=forms.Textarea, required=False)
 
     def __init__(self, *args, **kwargs):
         self.cancha_pk = kwargs.pop('cancha_pk', None)
@@ -342,8 +370,8 @@ class CanchaForm(forms.Form):
         codigo = (self.cleaned_data.get('codigo_idrd') or '').strip()
         if not codigo:
             return None
-        if not re.match(r'^[A-Za-z0-9-]+$', codigo):
-            raise forms.ValidationError('Solo letras, números o guiones.')
+        if not re.match(r'^\d{2}-\d{3,4}$', codigo):
+            raise forms.ValidationError('Formato esperado: 00-000 o 00-0000 (localidad-parque).')
         qs = Cancha.objects.filter(_codigo_idrd__iexact=codigo)
         if self.cancha_pk:
             qs = qs.exclude(pk=self.cancha_pk)
@@ -385,8 +413,8 @@ class CanchaForm(forms.Form):
         codigo = (self.cleaned_data.get('codigo_rupi') or '').strip()
         if not codigo:
             return None
-        if not re.match(r'^[A-Za-z0-9-]+$', codigo):
-            raise forms.ValidationError('Solo letras, números o guiones.')
+        if not re.match(r'^\d{5}\s\d{3}$', codigo):
+            raise forms.ValidationError('Formato esperado: 00000 000 (5 digitos, espacio, 3 digitos).')
         qs = Cancha.objects.filter(_codigo_rupi__iexact=codigo)
         if self.cancha_pk:
             qs = qs.exclude(pk=self.cancha_pk)

@@ -46,8 +46,8 @@ class CustomPasswordResetForm(PasswordResetForm):
         )
 
 class EditarPerfilForm(forms.Form):
-    nombres = forms.CharField(max_length = 50)
-    apellidos = forms.CharField(max_length = 50)
+    nombres = forms.CharField(max_length = 30)
+    apellidos = forms.CharField(max_length = 30)
     num_documento = forms.CharField()
     email = forms.EmailField()
     telefono = forms.CharField(max_length = 20)
