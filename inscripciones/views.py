@@ -23,6 +23,7 @@ from accounts.models import Usuario, Jugador
 from django.contrib.auth import update_session_auth_hash
 from django.utils import timezone
 from .utils import validar_edad_categoria, _enviar_credenciales_jugador, geodificar_direccion, enviar_credenciales_jugadores_lote
+from .constants import MENSAJE_ELIMINACION_PROGRAMADA
 
 def _get_equipo_entrenador(user):
     """Retorna el equipo del entrenador o None."""
@@ -35,7 +36,7 @@ def _agendar_eliminacion_equipo(request, equipo, motivo):
     ahora = timezone.now()
 
     if equipo.eliminar_programada_para and equipo.eliminar_programada_para > ahora:
-        messages.info(request, 'Este equipo ya tiene una eliminación programada.')
+        messages.info(request, MENSAJE_ELIMINACION_PROGRAMADA)
         return False
 
     motivo_limpio = (motivo or '').strip()
@@ -469,7 +470,7 @@ def eliminar_equipo(request, equipo_id):
     if request.method == 'POST':
         if es_admin:
             if equipo.eliminar_programada_para:
-                messages.error(request, 'Este equipo ya tiene una eliminación programada.')
+                messages.error(request, MENSAJE_ELIMINACION_PROGRAMADA)
                 return redirect('inscripciones:lista_equipos')
 
             motivo = request.POST.get('motivo_eliminacion', '')
@@ -478,7 +479,7 @@ def eliminar_equipo(request, equipo_id):
 
         if es_dueno:
             if equipo.eliminar_programada_para:
-                messages.error(request, 'Este equipo ya tiene una eliminación programada.')
+                messages.error(request, MENSAJE_ELIMINACION_PROGRAMADA)
                 return redirect('inscripciones:mi_equipo')
             nombre = equipo.nombre
             equipo.delete()
