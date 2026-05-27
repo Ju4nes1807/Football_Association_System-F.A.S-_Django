@@ -56,8 +56,8 @@
 
                 <!-- Nombres -->
                 <div class="field-group {% if form.nombres.errors %}field-error{% endif %}">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombres <span class="text-gray-400 font-normal">(Maximo 30 caracteres)</span></label>
-                    <input type="text" id="nombres" name="nombres" maxlength="30" value="{{ form.nombres.value|default:'' }}"
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombres <span class="text-gray-400 font-normal">(Maximo 50 caracteres)</span></label>
+                    <input type="text" id="nombres" name="nombres" maxlength="50" value="{{ form.nombres.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Nombres completos">
                     <p class="invalid-feedback hidden" id="err-nombres"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
@@ -66,8 +66,8 @@
 
                 <!-- Apellidos -->
                 <div class="field-group {% if form.apellidos.errors %}field-error{% endif %}">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellidos <span class="text-gray-400 font-normal">(Maximo 30 caracteres)</span></label>
-                    <input type="text" id="apellidos" name="apellidos" maxlength="30" value="{{ form.apellidos.value|default:'' }}"
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellidos <span class="text-gray-400 font-normal">(Maximo 50 caracteres)</span></label>
+                    <input type="text" id="apellidos" name="apellidos" maxlength="50" value="{{ form.apellidos.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Apellidos completos">
                     <p class="invalid-feedback hidden" id="err-apellidos"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
@@ -77,7 +77,7 @@
                 <!-- Documento -->
                 <div class="field-group {% if form.num_documento.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Número de Documento</label>
-                    <input type="text" id="num_documento" name="num_documento" value="{{ form.num_documento.value|default:'' }}"
+                    <input type="text" id="num_documento" name="num_documento" maxlength="12" value="{{ form.num_documento.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ej: 1234567890" inputmode="numeric">
                     <p class="invalid-feedback hidden" id="err-num_documento"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>

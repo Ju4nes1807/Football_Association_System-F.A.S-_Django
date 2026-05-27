@@ -185,7 +185,7 @@ class Jugador(Usuario):
         verbose_name_plural = "Jugadores"
 
 class Entrenador(Usuario):
-    _experiencia = models.CharField(max_length=15, db_column='experiencia')
+    _experiencia = models.PositiveIntegerField(db_column='experiencia')
 
     @property
     def experiencia(self):
@@ -193,9 +193,13 @@ class Entrenador(Usuario):
 
     @experiencia.setter
     def experiencia(self, value):
-        if not value or not str(value).strip():
-            raise ValueError('La experiencia es obligatoria.')
-        self._experiencia = str(value).strip()
+        try:
+            val = int(value)
+            if val < 0 or val > 60:
+                raise ValueError('La experiencia debe estar entre 0 y 60 años.')
+            self._experiencia = val
+        except (ValueError, TypeError):
+            raise ValueError('La experiencia debe ser un número válido entre 0 y 60.')
 
     class Meta:
         verbose_name = "Entrenador"

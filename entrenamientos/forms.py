@@ -63,7 +63,8 @@ class EntrenamientoForm(forms.ModelForm):
         widgets = {
             'nombre': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ej: Circuito de definicion y presion alta'
+                'placeholder': 'Ej: Circuito de definicion y presion alta',
+                'maxlength': '100'
             }),
             'fecha_hora': forms.DateTimeInput(attrs={
                 'class': 'form-control',

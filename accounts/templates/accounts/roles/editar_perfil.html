@@ -110,7 +110,7 @@
                 <!-- Nombres -->
                 <div class="field-group {% if form.nombres.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nombres</label>
-                    <input type="text" id="nombres" name="nombres" maxlength="30"
+                    <input type="text" id="nombres" name="nombres" maxlength="50"
                         value="{{ form.nombres.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ingrese sus nombres">
@@ -121,7 +121,7 @@
                 <!-- Apellidos -->
                 <div class="field-group {% if form.apellidos.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Apellidos</label>
-                    <input type="text" id="apellidos" name="apellidos" maxlength="30"
+                    <input type="text" id="apellidos" name="apellidos" maxlength="50"
                         value="{{ form.apellidos.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ingrese sus apellidos">
@@ -132,7 +132,7 @@
                 <!-- Documento -->
                 <div class="field-group {% if form.num_documento.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Número de Documento</label>
-                    <input type="text" id="num_documento" name="num_documento"
+                    <input type="text" id="num_documento" name="num_documento" maxlength="12"
                         value="{{ form.num_documento.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
                         placeholder="Ej: 1234567890" inputmode="numeric">
@@ -176,10 +176,10 @@
                 {% if request.user.rol == 'ENTRENADOR' %}
                 <div class="field-group {% if form.experiencia.errors %}field-error{% endif %}">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Años de experiencia</label>
-                    <input type="text" id="experiencia" name="experiencia"
+                    <input type="number" id="experiencia" name="experiencia" min="0" max="60"
                         value="{{ form.experiencia.value|default:'' }}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fas-blue transition"
-                        placeholder="Ej: 5 años">
+                        placeholder="Ej: 5">
                     <p class="invalid-feedback hidden" id="err-experiencia"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span></span></p>
                     {% for error in form.experiencia.errors %}<p class="invalid-feedback"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z"/></svg><span>{{ error }}</span></p>{% endfor %}
                 </div>
@@ -326,7 +326,13 @@
                 if (age > 100) return 'Fecha inválida.';
                 return null;
             },
-            experiencia(v)      { const el = $('experiencia'); if (el && !v.trim()) return 'La experiencia es obligatoria.'; if (el && v.trim().length > 15) return 'Máximo 15 caracteres.'; return null; },
+            experiencia(v) {
+                const el = $('experiencia');
+                if (el && !v.trim()) return 'La experiencia es obligatoria.';
+                const n = parseInt(v);
+                if (el && (isNaN(n) || n < 0 || n > 60)) return 'Debe ser un número entre 0 y 60.';
+                return null;
+            },
             password_nueva(v)   { if (!v) return null; if (v.length<8) return 'Mínimo 8 caracteres.'; if (!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.'; if (!/[0-9]/.test(v)) return 'Debe incluir un número.'; if (!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.'; return null; },
             password_actual(v)  { const nueva = $('password_nueva')?.value; if (nueva && !v) return 'Debes ingresar tu contraseña actual.'; return null; },
         };

@@ -46,8 +46,8 @@ class TorneoForm(forms.ModelForm):
             'cupo_maximo', 'categoria', 'formato', 'ubicacion', 'estado'
         ]
         widgets = {
-            'nombre':       forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del torneo'}),
-            'descripcion':  forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'nombre':       forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del torneo', 'maxlength': '100'}),
+            'descripcion':  forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'maxlength': '500'}),
             'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'fecha_fin':    forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'categoria':    forms.Select(attrs={'class': 'form-select'}),

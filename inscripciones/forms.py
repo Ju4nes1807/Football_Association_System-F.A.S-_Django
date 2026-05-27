@@ -115,9 +115,9 @@ class EditarEquipoForm(forms.Form):
         return barrio
 
 class RegistroJugadorForm(forms.Form):
-    nombres = forms.CharField(max_length = 30)
-    apellidos = forms.CharField(max_length = 30)
-    num_documento = forms.CharField()
+    nombres = forms.CharField(max_length = 50)
+    apellidos = forms.CharField(max_length = 50)
+    num_documento = forms.CharField(max_length = 12)
     fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     email = forms.EmailField()
     telefono = forms.CharField(max_length = 20)
@@ -251,9 +251,9 @@ class EditarJugadorEntrenadorForm(forms.Form):
         return dorsal
 
 class EditarPerfilJugadorForm(forms.Form):
-    nombres = forms.CharField(max_length = 30)
-    apellidos = forms.CharField(max_length = 30)
-    num_documento = forms.CharField()
+    nombres = forms.CharField(max_length = 50)
+    apellidos = forms.CharField(max_length = 50)
+    num_documento = forms.CharField(max_length = 12)
     email = forms.EmailField()
     telefono = forms.CharField(max_length = 20)
     password_actual = forms.CharField(required=False, widget=forms.PasswordInput)
@@ -303,16 +303,6 @@ class EditarPerfilJugadorForm(forms.Form):
             raise forms.ValidationError('El correo ya esta en uso.')
         return email
     
-    def clean_num_documento(self):
-        num = (self.cleaned_data.get('num_documento') or '').strip()
-        if not num:
-            raise forms.ValidationError('El número de documento es obligatorio.')
-        if not re.match(r'^\d{6,12}$', num):
-            raise forms.ValidationError('Entre 6 y 12 dígitos numéricos.')
-        if Usuario.objects.filter(_num_documento = num).exclude(pk = self.jugador_pk).exists():
-            raise forms.ValidationError('El numero de documento ya esta registrado.')
-        return num
-
     def clean_telefono(self):
         tel = (self.cleaned_data.get('telefono') or '').strip()
         if not tel:

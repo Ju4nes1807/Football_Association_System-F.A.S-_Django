@@ -8,7 +8,7 @@ from .models import Usuario, Entrenador
 class BaseRegistroForm(forms.Form):
     nombres          = forms.CharField(max_length=50)
     apellidos        = forms.CharField(max_length=50)
-    num_documento    = forms.CharField()
+    num_documento    = forms.CharField(max_length=12)
     fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     email            = forms.EmailField()
     telefono         = forms.CharField(max_length=20)
@@ -33,7 +33,7 @@ class BaseRegistroForm(forms.Form):
         return tel
 
 class RegistroPublicoForm(BaseRegistroForm):
-    experiencia = forms.CharField(max_length=15)
+    experiencia = forms.IntegerField(min_value=0, max_value=60)
 
 class RegistroAdminForm(BaseRegistroForm):
     pass
@@ -46,13 +46,13 @@ class CustomPasswordResetForm(PasswordResetForm):
         )
 
 class EditarPerfilForm(forms.Form):
-    nombres = forms.CharField(max_length = 30)
-    apellidos = forms.CharField(max_length = 30)
-    num_documento = forms.CharField()
+    nombres = forms.CharField(max_length = 50)
+    apellidos = forms.CharField(max_length = 50)
+    num_documento = forms.CharField(max_length = 12)
     email = forms.EmailField()
     telefono = forms.CharField(max_length = 20)
     fecha_nacimiento = forms.DateField(widget = forms.DateInput(attrs = {'type': 'date'}))
-    experiencia = forms.CharField(max_length = 15, required = False)
+    experiencia = forms.IntegerField(min_value = 0, max_value = 60, required = False)
     password_actual = forms.CharField(required = False, widget = forms.PasswordInput)
     password_nueva = forms.CharField(required = False, widget = forms.PasswordInput)
 
@@ -127,13 +127,11 @@ class EditarPerfilForm(forms.Form):
         return fecha
 
     def clean_experiencia(self):
-        experiencia = (self.cleaned_data.get('experiencia') or '').strip()
+        experiencia = self.cleaned_data.get('experiencia')
         if not self.es_entrenador:
             return experiencia
-        if not experiencia:
+        if experiencia is None:
             raise forms.ValidationError('La experiencia es obligatoria.')
-        if len(experiencia) > 15:
-            raise forms.ValidationError('Máximo 15 caracteres.')
         return experiencia
 
     def clean_password_nueva(self):
