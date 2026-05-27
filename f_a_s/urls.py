@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
+from django.views.generic.base import RedirectView
 from f_a_s import settings
 
 urlpatterns = [
@@ -26,4 +27,5 @@ urlpatterns = [
     path('inscripciones/', include('inscripciones.urls')),
     path('torneos/', include('torneos.urls')),
     path('entrenamientos/', include('entrenamientos.urls')),
+    path('favicon.ico', RedirectView.as_view(url=settings.STATIC_URL + 'public/images/Logo.png')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
