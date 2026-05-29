@@ -20,6 +20,9 @@ from django.conf.urls.static import static
 from django.views.generic.base import RedirectView
 from f_a_s import settings
 
+handler404 = 'public.views.error_404'
+handler500 = 'public.views.error_500'
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('public.urls')),
