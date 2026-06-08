@@ -99,9 +99,9 @@
 
         <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="register"
+                <a href="{% url 'register' %}"
                     class="block bg-fas-yellow text-fas-dark-blue font-bold py-2 px-3 rounded-md text-center mt-2">Registrarse</a>
-                <a href="login" class="block bg-white text-fas-blue font-bold py-2 px-3 rounded-md text-center mt-2">Iniciar
+                <a href="{% url 'login' %}" class="block bg-white text-fas-blue font-bold py-2 px-3 rounded-md text-center mt-2">Iniciar
                     Sesión</a>
             </div>
         </div>
