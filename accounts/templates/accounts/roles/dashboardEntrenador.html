@@ -7,44 +7,13 @@
     <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <title>Sesion principal</title>
-    <style>
-        .footer-content {
-            flex-direction: column;
-        }
-
-        .dashboard-card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .dashboard-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 0.75rem 1.5rem rgba(13, 110, 253, 0.12);
-        }
-
-        @media (min-width: 576px) {
-            .footer-content {
-                flex-direction: row;
-            }
-        }
-
-        @media (max-width: 767.98px) {
-            .sidebar {
-                border-right: none !important;
-                border-bottom: 1px solid #dee2e6;
-                padding-bottom: 1rem;
-                margin-bottom: 1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
+    <title>Inicio entrenador | F.A.S</title>
 </head>
 <body class="d-flex flex-column min-vh-100">
-    <th:block th:replace="fragments/modalConfirmacion :: modalConfirmacion"></th:block>
-
     <div class="navbar navbar-expand-md bg-primary shadow mb-4">
-        <a href="{% url 'landingpage' %}" class="d-flex align-items-center">
-            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
+        <a href="{% url 'landingpage' %}" class="d-flex align-items-center text-decoration-none">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
             <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
         </a>
 
@@ -55,15 +24,13 @@
         <div class="collapse navbar-collapse" id="navNavbarDropdown">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="nav-link text-light shadow btn btn-link">
-                            Cerrar sesion
-                        </button>
-                    </form>
+                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesion</button>
+                    </form>
                 </li>
             </ul>
         </div>
@@ -71,9 +38,8 @@
 
     <div class="container-fluid flex-grow-1">
         <div class="row">
-            <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
-                <h5 class="mb-3 text-primary">Inicio</h5>
-
+            <aside class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top:1rem;height:fit-content;">
+                <h5 class="mb-3 text-primary">Menu</h5>
                 <div class="list-group">
                     <a href="{% url 'dashboard_entrenador' %}" class="list-group-item list-group-item-action active">Inicio</a>
                     <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Equipo</a>
@@ -81,176 +47,154 @@
                     <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
                     <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action">Jugadores</a>
+                    <a href="{% url 'torneos:entrenador_reporte_jugadores' %}" class="list-group-item list-group-item-action">Reportes</a>
                 </div>
-            </div>
+            </aside>
 
-            <div class="col-12 col-md-9 col-lg-10 p-4">
-                <h2>{{ request.user.nombres }} {{ request.user.apellidos }}</h2>
-                <p>Aqui podras ver un resumen de su equipo, torneos y entrenamientos.</p>
+            <main class="col-12 col-md-9 col-lg-10 p-4">
+                <section class="fas-welcome-panel">
+                    <div class="fas-welcome-hero">
+                        <span class="fas-kicker"><i class="fas fa-whistle"></i> Entrenador</span>
+                        <h1>Hola, {{ request.user.nombres }}. Tu equipo tiene un buen punto de partida.</h1>
+                        <p>Organiza jugadores, entrenamientos y torneos desde accesos simples. La idea es que pases menos tiempo buscando y mas tiempo preparando al grupo.</p>
+                    </div>
+                    <div class="fas-note-card">
+                        <i class="fas fa-clipboard-check"></i>
+                        <div>
+                            <strong>Notificaciones</strong>
+                            {% for item in notificaciones %}
+                                <p>{{ item }}</p>
+                            {% endfor %}
+                        </div>
+                        <span class="fas-card-meta"><i class="fas fa-users"></i> {{ total_jugadores }} jugador{{ total_jugadores|pluralize:"es" }}</span>
+                    </div>
+                </section>
 
-                <div class="row mt-4">
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning dashboard-card h-100">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Equipo</h5>
-                                <p>Consulte informacion sobre su equipo</p>
-                                <div class="d-flex flex-column align-items-center">
-                                    <i class="fas fa-school fa-3x text-warning mb-3"></i>
-                                    <span class="badge bg-warning text-dark fs-6">
-                                        {{ total_jugadores }} jugador{{ total_jugadores|pluralize:"es" }}
-                                    </span>
+                {% if not equipo %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-circle-info me-2"></i>
+                        Aun no tienes un equipo asociado. Cuando lo registres, aqui veras mejor organizada la informacion de tus jugadores.
+                    </div>
+                {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Equipo activo: <strong>{{ equipo.nombre }}</strong>. Manten sus datos actualizados para que los jugadores tengan informacion clara.
+                    </div>
+                {% endif %}
+
+                <section class="fas-metric-grid mb-4">
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-users"></i></span>
+                        <strong>{{ total_jugadores }}</strong>
+                        <small>Jugadores</small>
+                    </div>
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-dumbbell"></i></span>
+                        <strong>{{ total_entrenamientos }}</strong>
+                        <small>Entrenamientos</small>
+                    </div>
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-trophy"></i></span>
+                        <strong>{{ torneos_activos }}</strong>
+                        <small>Torneos activos</small>
+                    </div>
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-calendar-check"></i></span>
+                        <strong>{{ partidos_pendientes }}</strong>
+                        <small>Partidos pendientes</small>
+                    </div>
+                </section>
+
+                <section class="fas-home-grid">
+                    <a href="{% url 'inscripciones:mi_equipo' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-shield-alt"></i></span>
+                        <div>
+                            <h3>Mi equipo</h3>
+                            <p>Revisa datos, estado y categoria de tu equipo.</p>
+                        </div>
+                        <span class="fas-card-meta">Abrir equipo</span>
+                    </a>
+
+                    <a href="{% url 'lista_entrenamientos' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-dumbbell"></i></span>
+                        <div>
+                            <h3>Entrenamientos</h3>
+                            <p>Consulta sesiones y organiza la preparacion.</p>
+                        </div>
+                        <span class="fas-card-meta">{{ total_entrenamientos }} sesiones</span>
+                    </a>
+
+                    <a href="{% url 'inscripciones:lista_jugadores' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-users"></i></span>
+                        <div>
+                            <h3>Jugadores</h3>
+                            <p>Revisa la lista de deportistas de tu grupo.</p>
+                        </div>
+                        <span class="fas-card-meta">{{ total_jugadores }} activos</span>
+                    </a>
+
+                    <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-trophy"></i></span>
+                        <div>
+                            <h3>Torneos</h3>
+                            <p>Consulta competencias y partidos disponibles.</p>
+                        </div>
+                        <span class="fas-card-meta">{{ torneos_activos }} activos</span>
+                    </a>
+
+                    <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-location-dot"></i></span>
+                        <div>
+                            <h3>Canchas</h3>
+                            <p>Encuentra espacios disponibles para entrenar.</p>
+                        </div>
+                        <span class="fas-card-meta">{{ total_canchas }} disponibles</span>
+                    </a>
+
+                    <a href="{% url 'torneos:entrenador_reporte_jugadores' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-chart-line"></i></span>
+                        <div>
+                            <h3>Reportes</h3>
+                            <p>Detecta mejores rendimientos y jugadores que necesitan apoyo.</p>
+                        </div>
+                        <span class="fas-card-meta">{{ partidos_pendientes }} partidos pendientes</span>
+                    </a>
+                </section>
+
+                {% if proximos_entrenamientos %}
+                <div class="card mt-4">
+                    <div class="card-header bg-primary text-white fw-bold">
+                        <i class="fas fa-bell me-2"></i>Proximos entrenamientos
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {% for entrenamiento in proximos_entrenamientos %}
+                            <div class="col-12 col-lg-4">
+                                <div class="fas-note-card h-100">
+                                    <i class="fas fa-dumbbell"></i>
+                                    <div>
+                                        <strong>{{ entrenamiento.nombre }}</strong>
+                                        <p>{{ entrenamiento.fecha_hora|date:"d/m/Y H:i" }}<br>{{ entrenamiento.lugar_detallado }}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning dashboard-card h-100">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Entrenamientos</h5>
-                                <p>Realice entrenamientos para sus jugadores</p>
-                                <i class="fas fa-dumbbell fa-3x text-warning mb-3"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning dashboard-card h-100">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Torneos</h5>
-                                <p>Consulte la informacion de los torneos y compita al maximo</p>
-                                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning dashboard-card h-100">
-                            <div class="card-body text-center">
-                                <i class="fas fa-futbol fa-3x text-warning mb-3"></i>
-                                <h5 class="card-title">Canchas</h5>
-                                <p>Consulte todas las canchas disponibles en Bogota</p>
-                                <h2 class="fw-bold text-primary">{{ total_canchas }}</h2>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning dashboard-card h-100">
-                            <div class="card-body text-center">
-                                <i class="fas fa-users fa-3x text-warning mb-3"></i>
-                                <h5 class="card-title">Jugadores</h5>
-                                <p>Revise y administre la lista de jugadores de su equipo</p>
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="consultarEscuela" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <i class="bi bi-building"></i>
-                    <h5 class="modal-title" th:text="${escuela != null} ? ${escuela.nombre} : 'Sin Escuela Asignada'"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <h3>Informacion General</h3>
-                    <ul class="list-unstyled">
-                        <div th:if="${escuela != null}">
-                            <li>
-                                <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                                <strong>Ubicaciones:</strong>
-                                <ul>
-                                    <li th:each="ubi : ${ubicaciones}">
-                                        <span>
-                                            <i class="fas fa-map-pin text-secondary me-1"></i>
-                                            Localidad: <span th:text="${ubi.localidad}">-</span>,
-                                            Barrio: <span th:text="${ubi.barrio}">-</span>
-                                        </span>
-                                    </li>
-                                </ul>
-                            </li>
-
-                            <li th:if="${escuela.lideres != null and #lists.size(escuela.lideres) > 0}">
-                                <i class="fas fa-user-tie text-success me-2"></i>
-                                <strong>Lider:</strong>
-                                <span th:text="${escuela.lideres[0].nombres + ' ' + escuela.lideres[0].apellidos}"></span>
-                            </li>
-                        </div>
-                    </ul>
-
-                    <h3>Contacto</h3>
-                    <ul class="list-unstyled" th:if="${escuela != null}">
-                        <li>
-                            <i class="fas fa-phone text-warning me-2"></i>
-                            <strong>Telefono:</strong> <span th:text="${escuela.telefono}">-</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-envelope text-danger me-2"></i>
-                            <strong>Correo Electronico:</strong> <span th:text="${escuela.email}">-</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="modal-footer">
-                    <div th:if="${!tieneEscuela}">
-                        <a href="/escuelas/inscripcion" class="btn btn-warning"><i class="fas fa-plus-circle"></i></a>
-                    </div>
-
-                    <div th:if="${escuela != null}" class="d-flex gap-2">
-                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalConfirmacion" th:data-form-id="'formEliminarEscuela_' + ${escuela.idEscuela}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-
-                        <form th:id="'formEliminarEscuela_' + ${escuela.idEscuela}" th:action="@{/escuelas/eliminar/{id}(id=${escuela.idEscuela})}" method="post">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                        </form>
-
-                        <a th:href="@{/escuelas/editar/{id}(id=${escuela.idEscuela})}" class="btn btn-primary">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
+                {% endif %}
+            </main>
         </div>
     </div>
 
     <footer class="bg-warning py-3 mt-3 shadow mt-auto">
         <div class="container text-start d-flex align-items-center footer-content shadow">
-            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
-            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+            <p class="text-dark m-0">&copy; Football Association System. Todos los derechos reservados</p>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="validaciones.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var formId = null;
-
-            document.querySelectorAll('[data-bs-target="#modalConfirmacion"]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    formId = btn.getAttribute('data-form-id');
-                });
-            });
-
-            var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-            if (confirmDeleteBtn) {
-                confirmDeleteBtn.addEventListener('click', function () {
-                    if (formId) {
-                        var form = document.getElementById(formId);
-                        if (form) {
-                            form.submit();
-                        }
-                    }
-                });
-            }
-        });
-    </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

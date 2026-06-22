@@ -27,6 +27,13 @@ class Torneo(models.Model):
         GRUPOS_SEMI    = 'GRUPOS_SEMI',    'Grupos + Semifinales + Final'
         GRUPOS_CUARTOS = 'GRUPOS_CUARTOS', 'Grupos + Cuartos + Semifinales + Final'
 
+    class MotivoCancelacion(models.TextChoices):
+        CLIMA = 'CLIMA', 'Clima o estado de la cancha'
+        CUPOS = 'CUPOS', 'Cupos insuficientes'
+        LOGISTICA = 'LOGISTICA', 'Problemas logisticos'
+        SEGURIDAD = 'SEGURIDAD', 'Seguridad'
+        OTRO = 'OTRO', 'Otro motivo'
+
     nombre         = models.CharField(max_length=100)
     descripcion    = models.TextField(blank=True)
     fecha_inicio   = models.DateField()
@@ -57,6 +64,12 @@ class Torneo(models.Model):
         default='GRUPOS',
         blank=True
     )
+    motivo_cancelacion = models.CharField(
+        max_length=20,
+        choices=MotivoCancelacion.choices,
+        blank=True
+    )
+    motivo_cancelacion_detalle = models.TextField(blank=True)
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 

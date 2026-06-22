@@ -17,6 +17,8 @@
         #toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
         #toast.error { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="flex flex-col min-h-screen bg-fas-gray-bg">
 
@@ -28,6 +30,7 @@
             </a>
             <div class="flex items-center gap-4">
                 <a href="{% url 'inscripciones:lista_jugadores' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition">Regresar</a>
+                <a href="{% url 'editar_perfil' %}" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Modificar Perfil</a>
                 <form method="POST" action="{% url 'logout' %}">{% csrf_token %}
                     <button type="submit" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Cerrar sesión</button>
                 </form>
@@ -208,5 +211,6 @@
         if(d&&d.dataset.msg) showToast(d.dataset.msg,d.dataset.type||'success');
     })();
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

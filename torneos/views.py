@@ -1,14 +1,138 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.http import HttpResponse, JsonResponse
 from django.db.models import Sum, Q
+from django.utils.html import escape
 from datetime import date
+from copy import copy
+from io import BytesIO
+from openpyxl import Workbook
 
 from .models import Torneo, InscripcionTorneo, Partido, EstadisticaJugador
 from .forms import TorneoForm, PartidoForm, EstadisticaForm
 from inscripciones.models import Cancha, Equipo
 from accounts.models import Jugador
+
+
+def _emails_jugadores_equipo(equipo):
+    if not equipo:
+        return []
+    return list(
+        Jugador.objects.filter(equipo=equipo, is_active=True)
+        .exclude(_email='')
+        .values_list('_email', flat=True)
+    )
+
+
+def _enviar_correo_partido(partido, creado=True):
+    equipos = [partido.equipo_local, partido.equipo_visita]
+    destinatarios = []
+    for equipo in equipos:
+        destinatarios.extend(_emails_jugadores_equipo(equipo))
+
+    destinatarios = sorted(set(destinatarios))
+    if not destinatarios:
+        return 0
+
+    asunto = 'Partido programado en F.A.S' if creado else 'Partido actualizado en F.A.S'
+    local = partido.equipo_local.nombre if partido.equipo_local else 'Por definir'
+    visita = partido.equipo_visita.nombre if partido.equipo_visita else 'Por definir'
+    fecha = partido.fecha.strftime('%d/%m/%Y %H:%M')
+    ubicacion = partido.ubicacion or partido.torneo.ubicacion or 'Por confirmar'
+    texto = (
+        f'Hola,\n\n'
+        f'Tu equipo tiene un partido en {partido.torneo.nombre}.\n\n'
+        f'Partido: {local} vs {visita}\n'
+        f'Fecha: {fecha}\n'
+        f'Lugar: {ubicacion}\n'
+        f'Estado: {partido.get_estado_display()}\n\n'
+        f'Revisa F.A.S para mas detalles.\n'
+    )
+    html = f"""
+    <div style="font-family:Arial,sans-serif;background:#f4f7fb;padding:24px;color:#172033;">
+      <div style="max-width:640px;margin:auto;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;">
+        <div style="background:#0d47a1;color:#fff;padding:20px 24px;border-bottom:4px solid #ffb300;">
+          <p style="margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#fff4cc;">Football Association System</p>
+          <h2 style="margin:0;font-size:24px;">{escape(asunto)}</h2>
+        </div>
+        <div style="padding:24px;">
+          <p>Tu equipo tiene un partido en <strong>{escape(partido.torneo.nombre)}</strong>.</p>
+          <div style="background:#edf5ff;border-left:5px solid #ffb300;border-radius:12px;padding:16px;">
+            <p style="font-size:18px;margin:0 0 12px;"><strong>{escape(local)}</strong> vs <strong>{escape(visita)}</strong></p>
+            <p><strong>Fecha:</strong> {escape(fecha)}</p>
+            <p><strong>Lugar:</strong> {escape(ubicacion)}</p>
+            <p><strong>Estado:</strong> {escape(partido.get_estado_display())}</p>
+          </div>
+          <p style="color:#667085;">Revisa F.A.S para confirmar cualquier cambio antes de salir hacia la cancha.</p>
+        </div>
+      </div>
+    </div>
+    """
+    msg = EmailMultiAlternatives(asunto, texto, settings.DEFAULT_FROM_EMAIL, destinatarios)
+    msg.attach_alternative(html, 'text/html')
+    msg.send(fail_silently=True)
+    return len(destinatarios)
+
+
+def _pdf_escape(value):
+    return str(value).replace('\\', '\\\\').replace('(', '\\(').replace(')', '\\)')
+
+
+def _generar_pdf_reporte(equipo, reporte, filtros=None):
+    filtros = filtros or {}
+    filtros_aplicados = ', '.join(
+        f'{clave}: {valor}' for clave, valor in filtros.items() if valor
+    ) or 'Sin filtros'
+    lines = [
+        'Reporte de jugadores F.A.S',
+        f'Equipo: {equipo.nombre}',
+        f'Fecha: {date.today().strftime("%d/%m/%Y")}',
+        f'Filtros: {filtros_aplicados}',
+        f'Total jugadores: {len(reporte)}',
+        '',
+        'Jugador | Posicion | PJ | Goles | Asistencias | Minutos | Disciplina | Puntaje',
+    ]
+    for item in reporte:
+        jugador = item['jugador']
+        lines.append(
+            f"#{jugador.dorsal} {jugador.nombres} {jugador.apellidos} | "
+            f"{jugador.posicion.title()} | {item['partidos']} | {item['goles']} | "
+            f"{item['asistencias']} | {item['minutos']} | {item['disciplina']} | {item['puntaje']}"
+        )
+
+    stream = ['BT', '/F1 11 Tf', '50 790 Td', '14 TL']
+    for index, line in enumerate(lines[:48]):
+        if index:
+            stream.append('T*')
+        stream.append(f'({_pdf_escape(line)}) Tj')
+    stream.append('ET')
+    content = '\n'.join(stream).encode('latin-1', errors='replace')
+
+    objects = []
+    objects.append(b'<< /Type /Catalog /Pages 2 0 R >>')
+    objects.append(b'<< /Type /Pages /Kids [3 0 R] /Count 1 >>')
+    objects.append(b'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>')
+    objects.append(b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
+    objects.append(b'<< /Length ' + str(len(content)).encode('ascii') + b' >>\nstream\n' + content + b'\nendstream')
+
+    pdf = BytesIO()
+    pdf.write(b'%PDF-1.4\n')
+    offsets = [0]
+    for number, obj in enumerate(objects, start=1):
+        offsets.append(pdf.tell())
+        pdf.write(f'{number} 0 obj\n'.encode('ascii'))
+        pdf.write(obj)
+        pdf.write(b'\nendobj\n')
+    xref = pdf.tell()
+    pdf.write(f'xref\n0 {len(objects) + 1}\n'.encode('ascii'))
+    pdf.write(b'0000000000 65535 f \n')
+    for offset in offsets[1:]:
+        pdf.write(f'{offset:010d} 00000 n \n'.encode('ascii'))
+    pdf.write(f'trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF'.encode('ascii'))
+    return pdf.getvalue()
 
 
 # ─────────────────────────────────────────────
@@ -276,17 +400,29 @@ def admin_lista_torneos(request):
 
     nombre = request.GET.get('nombre', '').strip()
     estado = request.GET.get('estado', '').strip()
+    motivo = request.GET.get('motivo', '').strip()
+    detalle = request.GET.get('detalle', '').strip()
     torneos = Torneo.objects.all()
     if nombre:
         torneos = torneos.filter(nombre__icontains=nombre)
     if estado:
         torneos = torneos.filter(estado=estado)
+    if motivo:
+        torneos = torneos.filter(motivo_cancelacion=motivo)
+    if detalle:
+        torneos = torneos.filter(
+            Q(motivo_cancelacion_detalle__icontains=detalle) |
+            Q(descripcion__icontains=detalle)
+        )
 
     return render(request, 'torneos/admin/lista_torneos.html', {
         'torneos':         torneos,
         'request_nombre':  nombre,
         'request_estado':  estado,
+        'request_motivo':  motivo,
+        'request_detalle': detalle,
         'estados':         Torneo.Estado.choices,
+        'motivos_cancelacion': Torneo.MotivoCancelacion.choices,
     })
 
 
@@ -356,8 +492,19 @@ def admin_eliminar_torneo(request, torneo_id):
 
     torneo = get_object_or_404(Torneo, id=torneo_id)
     if request.method == 'POST':
-        torneo.delete()
-        messages.success(request, 'Torneo eliminado.')
+        motivo = request.POST.get('motivo_cancelacion', '').strip()
+        detalle = request.POST.get('motivo_cancelacion_detalle', '').strip()
+        motivos_validos = {choice[0] for choice in Torneo.MotivoCancelacion.choices}
+
+        if motivo not in motivos_validos:
+            messages.error(request, 'Selecciona un motivo para cancelar el torneo.')
+            return redirect('torneos:admin_lista_torneos')
+
+        torneo.estado = Torneo.Estado.CANCELADO
+        torneo.motivo_cancelacion = motivo
+        torneo.motivo_cancelacion_detalle = detalle
+        torneo.save(update_fields=['estado', 'motivo_cancelacion', 'motivo_cancelacion_detalle'])
+        messages.success(request, 'Torneo cancelado y conservado en el historial.')
     return redirect('torneos:admin_lista_torneos')
 
 
@@ -442,7 +589,11 @@ def admin_crear_partido(request, torneo_id):
         partido = form.save(commit=False)
         partido.torneo = torneo
         partido.save()
-        messages.success(request, 'Partido creado.')
+        enviados = _enviar_correo_partido(partido, creado=True)
+        if enviados:
+            messages.success(request, f'Partido creado. Se notifico a {enviados} jugador(es).')
+        else:
+            messages.success(request, 'Partido creado. No habia correos de jugadores para notificar.')
         return redirect('torneos:admin_detalle_torneo', torneo_id=torneo_id)
 
     return render(request, 'torneos/admin/crear_partido.html', {
@@ -463,8 +614,12 @@ def admin_editar_partido(request, partido_id):
     )
 
     if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, 'Partido actualizado.')
+        partido = form.save()
+        enviados = _enviar_correo_partido(partido, creado=False)
+        if enviados:
+            messages.success(request, f'Partido actualizado. Se notifico a {enviados} jugador(es).')
+        else:
+            messages.success(request, 'Partido actualizado. No habia correos de jugadores para notificar.')
         return redirect('torneos:admin_detalle_torneo', torneo_id=partido.torneo.id)
 
     return render(request, 'torneos/admin/crear_partido.html', {
@@ -892,9 +1047,15 @@ def entrenador_estadisticas_partido(request, partido_id):
         max_goles_equipo = partido.goles_visita
 
     if request.method == 'POST':
+        def entero_no_negativo(nombre):
+            try:
+                return max(0, int(request.POST.get(nombre, 0) or 0))
+            except (TypeError, ValueError):
+                return 0
+
         # Validar que los goles ingresados no superen el marcador
         total_goles_ingresados = sum(
-            int(request.POST.get(f'goles_{jugador.id}', 0) or 0)
+            entero_no_negativo(f'goles_{jugador.id}')
             for jugador in jugadores
         )
 
@@ -907,11 +1068,11 @@ def entrenador_estadisticas_partido(request, partido_id):
         else:
             procesados = 0
             for jugador in jugadores:
-                goles = int(request.POST.get(f'goles_{jugador.id}', 0) or 0)
-                asistencias = int(request.POST.get(f'asistencias_{jugador.id}', 0) or 0)
-                amarillas = int(request.POST.get(f'amarillas_{jugador.id}', 0) or 0)
-                rojas = int(request.POST.get(f'rojas_{jugador.id}', 0) or 0)
-                minutos = int(request.POST.get(f'minutos_{jugador.id}', 0) or 0)
+                goles = entero_no_negativo(f'goles_{jugador.id}')
+                asistencias = entero_no_negativo(f'asistencias_{jugador.id}')
+                amarillas = entero_no_negativo(f'amarillas_{jugador.id}')
+                rojas = entero_no_negativo(f'rojas_{jugador.id}')
+                minutos = entero_no_negativo(f'minutos_{jugador.id}')
 
                 estadistica, _ = EstadisticaJugador.objects.update_or_create(
                     partido=partido,
@@ -946,7 +1107,164 @@ def entrenador_estadisticas_partido(request, partido_id):
         'partido': partido,
         'torneo': partido.torneo,
         'equipo': equipo,
+        'max_goles_equipo': max_goles_equipo,
         'jugadores_con_stats': jugadores_con_stats,
+    })
+
+
+@login_required
+def entrenador_reporte_jugadores(request):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    if not equipo:
+        messages.error(request, 'Necesitas un equipo para generar reportes.')
+        return redirect('dashboard_entrenador')
+
+    busqueda = request.GET.get('q', '').strip()
+    posicion = request.GET.get('posicion', '').strip()
+    rendimiento = request.GET.get('rendimiento', '').strip()
+    orden = request.GET.get('orden', 'puntaje').strip()
+    export = request.GET.get('export', '').strip().lower()
+
+    jugadores = Jugador.objects.filter(equipo=equipo).order_by('_dorsal', '_nombres')
+    if busqueda:
+        jugadores = jugadores.filter(
+            Q(_nombres__icontains=busqueda) |
+            Q(_apellidos__icontains=busqueda) |
+            Q(_num_documento__icontains=busqueda)
+        )
+    if posicion:
+        jugadores = jugadores.filter(_posicion=posicion)
+
+    posiciones = list(
+        Jugador.objects.filter(equipo=equipo)
+        .exclude(_posicion='')
+        .order_by('_posicion')
+        .values_list('_posicion', flat=True)
+        .distinct()
+    )
+
+    reporte = []
+    for jugador in jugadores:
+        agg = EstadisticaJugador.objects.filter(jugador=jugador).aggregate(
+            goles=Sum('goles'),
+            asistencias=Sum('asistencias'),
+            amarillas=Sum('tarjetas_amarillas'),
+            rojas=Sum('tarjetas_rojas'),
+            minutos=Sum('minutos_jugados'),
+        )
+        partidos = EstadisticaJugador.objects.filter(jugador=jugador).count()
+        goles = agg['goles'] or 0
+        asistencias = agg['asistencias'] or 0
+        amarillas = agg['amarillas'] or 0
+        rojas = agg['rojas'] or 0
+        minutos = agg['minutos'] or 0
+        disciplina = max(0, 100 - (amarillas * 8) - (rojas * 25))
+        puntaje = min(100, round((goles * 12) + (asistencias * 8) + (minutos / 12) + (disciplina * 0.25)))
+
+        reporte.append({
+            'jugador': jugador,
+            'partidos': partidos,
+            'goles': goles,
+            'asistencias': asistencias,
+            'amarillas': amarillas,
+            'rojas': rojas,
+            'minutos': minutos,
+            'disciplina': disciplina,
+            'puntaje': puntaje,
+        })
+
+    if rendimiento == 'alto':
+        reporte = [item for item in reporte if item['puntaje'] >= 75]
+    elif rendimiento == 'medio':
+        reporte = [item for item in reporte if 40 <= item['puntaje'] < 75]
+    elif rendimiento == 'bajo':
+        reporte = [item for item in reporte if item['puntaje'] < 40 and item['partidos'] > 0]
+    elif rendimiento == 'sin_datos':
+        reporte = [item for item in reporte if item['partidos'] == 0]
+
+    ordenadores = {
+        'puntaje': lambda item: (-item['puntaje'], -item['goles'], -item['asistencias'], item['jugador'].apellidos),
+        'goles': lambda item: (-item['goles'], -item['puntaje'], item['jugador'].apellidos),
+        'asistencias': lambda item: (-item['asistencias'], -item['puntaje'], item['jugador'].apellidos),
+        'minutos': lambda item: (-item['minutos'], -item['puntaje'], item['jugador'].apellidos),
+        'dorsal': lambda item: (item['jugador'].dorsal, item['jugador'].apellidos),
+    }
+    reporte.sort(key=ordenadores.get(orden, ordenadores['puntaje']))
+    mejores = reporte[:3]
+    apoyo = sorted(reporte, key=lambda item: (item['puntaje'], item['partidos']))[:3]
+
+    if export == 'excel':
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Jugadores'
+        ws.append(['Reporte de jugadores F.A.S'])
+        ws.append([f'Equipo: {equipo.nombre}'])
+        ws.append([f'Fecha: {date.today().strftime("%d/%m/%Y")}'])
+        ws.append([f'Filtros: busqueda={busqueda or "todos"}; posicion={posicion or "todas"}; rendimiento={rendimiento or "todos"}; orden={orden}'])
+        ws.append([])
+        ws.append(['Jugador', 'Documento', 'Dorsal', 'Posicion', 'Partidos', 'Goles', 'Asistencias', 'Minutos', 'Disciplina', 'Puntaje'])
+        header_row = ws.max_row
+        for item in reporte:
+            jugador = item['jugador']
+            ws.append([
+                f'{jugador.nombres} {jugador.apellidos}',
+                jugador.num_documento,
+                jugador.dorsal,
+                jugador.posicion.title(),
+                item['partidos'],
+                item['goles'],
+                item['asistencias'],
+                item['minutos'],
+                item['disciplina'],
+                item['puntaje'],
+            ])
+        ws.freeze_panes = f'A{header_row + 1}'
+        for cell in ws[header_row]:
+            font = copy(cell.font)
+            fill = copy(cell.fill)
+            font.bold = True
+            font.color = 'FFFFFF'
+            fill.fill_type = 'solid'
+            fill.fgColor = '0D47A1'
+            cell.font = font
+            cell.fill = fill
+        for column in ws.columns:
+            letter = column[0].column_letter
+            ws.column_dimensions[letter].width = min(32, max(12, max(len(str(cell.value or '')) for cell in column) + 2))
+        output = BytesIO()
+        wb.save(output)
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="reporte_jugadores.xlsx"'
+        return response
+
+    if export == 'pdf':
+        response = HttpResponse(_generar_pdf_reporte(equipo, reporte, {
+            'busqueda': busqueda,
+            'posicion': posicion,
+            'rendimiento': rendimiento,
+            'orden': orden,
+        }), content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_jugadores.pdf"'
+        return response
+
+    return render(request, 'torneos/entrenador/reporte_jugadores.html', {
+        'equipo': equipo,
+        'reporte': reporte,
+        'mejores': mejores,
+        'apoyo': apoyo,
+        'posiciones': posiciones,
+        'filtros': {
+            'q': busqueda,
+            'posicion': posicion,
+            'rendimiento': rendimiento,
+            'orden': orden,
+        },
     })
 
 

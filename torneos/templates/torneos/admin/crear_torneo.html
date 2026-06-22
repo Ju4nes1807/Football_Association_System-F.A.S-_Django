@@ -21,16 +21,18 @@
         }
         #mapaCanchas { height: 320px; width: 100%; border-radius: 8px; overflow: hidden; }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light">
 
-    <nav class="navbar navbar-expand bg-primary shadow">
+    <nav class="navbar navbar-expand-md bg-primary shadow mb-4">
         <div class="container-fluid">
             <a href="{% url 'torneos:admin_lista_torneos' %}" class="d-flex align-items-center text-decoration-none">
                 <img src="{% static 'public/images/Logo.png' %}" alt="Logo" style="width:75px;height:75px;" class="me-2">
                 <span class="navbar-brand text-light fs-2 shadow m-0">F.A.S</span>
             </a>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <a href="{% url 'editar_perfil' %}" class="nav-link text-light">Modificar Perfil</a>
                 <a href="{% url 'torneos:admin_lista_torneos' %}" class="nav-link text-light">
                     <i class="fas fa-arrow-left"></i> Regresar
                 </a>
@@ -449,5 +451,6 @@
             }
         });
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

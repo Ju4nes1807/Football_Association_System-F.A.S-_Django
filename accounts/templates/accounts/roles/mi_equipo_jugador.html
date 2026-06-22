@@ -19,6 +19,7 @@
         .fas-toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
         .fas-toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -40,7 +41,7 @@
                     </form>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url 'editar_jugador_perfil' %}" class="nav-link text-light shadow">Editar Perfil</a>
+                    <a href="{% url 'editar_jugador_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
                 </li>
             </ul>
         </div>
@@ -188,5 +189,6 @@
         if(d&&d.dataset.msg) showToast(d.dataset.msg,d.dataset.type||'success');
     })();
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

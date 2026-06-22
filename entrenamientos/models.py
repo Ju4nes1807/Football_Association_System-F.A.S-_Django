@@ -1,12 +1,20 @@
 from django.db import models
+from django.utils import timezone
 from accounts.models import Entrenador 
 from accounts.models import Jugador
 from inscripciones.models import Equipo, Cancha
 
 class Entrenamiento(models.Model):
+    class Estado(models.TextChoices):
+        PROGRAMADO = 'PROGRAMADO', 'Programado'
+        EN_CURSO = 'EN_CURSO', 'En curso'
+        FINALIZADO = 'FINALIZADO', 'Finalizado'
+
     nombre = models.CharField(max_length=100, verbose_name="Nombre de la sesión")
     descripcion = models.TextField(blank=True, null=True)
     fecha_hora = models.DateTimeField(verbose_name="Fecha y Hora")
+    fecha_fin = models.DateTimeField(verbose_name="Fecha de finalizacion", blank=True, null=True)
+    estado = models.CharField(max_length=15, choices=Estado.choices, default=Estado.PROGRAMADO)
     lugar = models.CharField(max_length=150)
     cancha = models.ForeignKey(
         Cancha,
@@ -27,6 +35,30 @@ class Entrenamiento(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.equipo}"
+
+    def actualizar_estado(self, guardar=False):
+        ahora = timezone.now()
+        fin = self.fecha_fin or self.fecha_hora
+
+        if ahora < self.fecha_hora:
+            nuevo_estado = self.Estado.PROGRAMADO
+        elif self.fecha_hora <= ahora <= fin:
+            nuevo_estado = self.Estado.EN_CURSO
+        else:
+            nuevo_estado = self.Estado.FINALIZADO
+
+        if self.estado != nuevo_estado:
+            self.estado = nuevo_estado
+            if guardar and self.pk:
+                self.save(update_fields=['estado'])
+
+        return self.estado
+
+    def save(self, *args, **kwargs):
+        if not self.fecha_fin:
+            self.fecha_fin = self.fecha_hora
+        self.actualizar_estado(guardar=False)
+        return super().save(*args, **kwargs)
 
     @property
     def lugar_detallado(self):

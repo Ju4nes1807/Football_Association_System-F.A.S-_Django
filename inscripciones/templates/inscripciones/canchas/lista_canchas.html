@@ -62,17 +62,21 @@
         color: #fff !important;
     }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 
 <body class="d-flex flex-column min-vh-100">
 
-    <div class="navbar navbar-expand bg-primary shadow mb-4">
-        <a href="{% url 'landingpage' %}">
+    <div class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <a href="{% url 'landingpage' %}" class="d-flex align-items-center text-decoration-none">
             <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2"
                 style="width:75px;height:75px">
+            <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
         </a>
-        <p class="navbar-brand text-light fs-2 shadow">F.A.S</p>
-        <div class="collapse navbar-collapse">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navNavbarDropdown">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navNavbarDropdown">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
                     <form method="POST" action="{% url 'logout' %}">{% csrf_token %}
@@ -649,6 +653,7 @@
 
 })();
 </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 
 </html>

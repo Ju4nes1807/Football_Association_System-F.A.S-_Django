@@ -24,6 +24,7 @@
             min-height: 380px;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light">
 
@@ -45,7 +46,7 @@
                         </form>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'editar_jugador_perfil' %}" class="nav-link text-light shadow">Editar Perfil</a>
+                        <a href="{% url 'editar_jugador_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
                     </li>
                 </ul>
             </div>
@@ -56,7 +57,7 @@
         <div class="row px-md-4">
             <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
                 <h5 class="mb-3 text-primary">Menú Jugador</h5>
-                <div class="list-group shadow-sm">
+                <div class="list-group">
                     <a href="{% url 'dashboard_jugador' %}" class="list-group-item list-group-item-action">Inicio</a>
                     <a href="{% url 'lista_entrenamientos_jugador' %}" class="list-group-item list-group-item-action active">Entrenamientos</a>
                     <a href="{% url 'torneos:jugador_mis_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
@@ -99,8 +100,18 @@
                                         <span class="badge bg-primary-subtle text-primary mb-2">{{ entrenamiento.fecha_hora|date:"d/m/Y" }}</span>
                                         <h4 class="fw-bold mb-1">{{ entrenamiento.nombre }}</h4>
                                         <p class="text-muted mb-0">{{ entrenamiento.fecha_hora|date:"g:i A" }}</p>
+                                        <p class="text-muted mb-0 small">Finaliza: {{ entrenamiento.fecha_fin|date:"d/m/Y g:i A" }}</p>
                                     </div>
-                                    <i class="fas fa-dumbbell text-warning fs-3"></i>
+                                    <div class="text-end">
+                                        <i class="fas fa-dumbbell text-warning fs-3 d-block mb-2"></i>
+                                        {% if entrenamiento.estado == 'PROGRAMADO' %}
+                                            <span class="badge bg-info">Programado</span>
+                                        {% elif entrenamiento.estado == 'EN_CURSO' %}
+                                            <span class="badge bg-success">En curso</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Finalizado</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
 
                                 <div class="mb-3">
@@ -218,5 +229,6 @@
             }
         })();
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

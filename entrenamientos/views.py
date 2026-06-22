@@ -2,14 +2,62 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
 from django.db.utils import OperationalError, ProgrammingError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_datetime
+from django.utils.html import escape
 
 from accounts.models import Jugador
 from .forms import EntrenamientoForm, obtener_canchas_disponibles
 from .models import AsistenciaEntrenamiento, Entrenamiento
+
+
+def _enviar_correo_entrenamiento(entrenamiento, creado=True):
+    jugadores = Jugador.objects.filter(
+        equipo=entrenamiento.equipo,
+        is_active=True,
+    ).exclude(_email='')
+    destinatarios = list(jugadores.values_list('_email', flat=True))
+    if not destinatarios:
+        return 0
+
+    asunto = 'Entrenamiento programado en F.A.S' if creado else 'Entrenamiento actualizado en F.A.S'
+    fecha = entrenamiento.fecha_hora.strftime('%d/%m/%Y %H:%M')
+    lugar = entrenamiento.lugar_detallado
+    texto = (
+        f'Hola,\n\n'
+        f'Tienes una sesion de entrenamiento con {entrenamiento.equipo.nombre}.\n\n'
+        f'Sesion: {entrenamiento.nombre}\n'
+        f'Fecha: {fecha}\n'
+        f'Lugar: {lugar}\n\n'
+        f'Revisa F.A.S para mas detalles.\n'
+    )
+    html = f"""
+    <div style="font-family:Arial,sans-serif;background:#f4f7fb;padding:24px;color:#172033;">
+      <div style="max-width:640px;margin:auto;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;">
+        <div style="background:#0d47a1;color:#fff;padding:20px 24px;border-bottom:4px solid #ffb300;">
+          <p style="margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#fff4cc;">Football Association System</p>
+          <h2 style="margin:0;font-size:24px;">{escape(asunto)}</h2>
+        </div>
+        <div style="padding:24px;">
+          <p>Tienes una sesion de entrenamiento con <strong>{escape(entrenamiento.equipo.nombre)}</strong>.</p>
+          <div style="background:#edf5ff;border-left:5px solid #ffb300;border-radius:12px;padding:16px;">
+            <p><strong>Sesion:</strong> {escape(entrenamiento.nombre)}</p>
+            <p><strong>Fecha:</strong> {escape(fecha)}</p>
+            <p><strong>Lugar:</strong> {escape(lugar)}</p>
+          </div>
+          <p style="color:#667085;">Llega con tiempo, prepara tus implementos y revisa cualquier cambio en F.A.S.</p>
+        </div>
+      </div>
+    </div>
+    """
+    msg = EmailMultiAlternatives(asunto, texto, settings.DEFAULT_FROM_EMAIL, destinatarios)
+    msg.attach_alternative(html, 'text/html')
+    msg.send(fail_silently=True)
+    return len(destinatarios)
 
 
 def _obtener_equipo_entrenador(user):
@@ -159,6 +207,10 @@ def lista_entrenamientos(request):
             equipo=user.jugador.equipo
         )
 
+    entrenamientos = list(entrenamientos)
+    for entrenamiento in entrenamientos:
+        entrenamiento.actualizar_estado(guardar=True)
+
     panel_asistencia = []
     total_jugadores = 0
     if user.rol == 'ENTRENADOR':
@@ -176,10 +228,14 @@ def lista_entrenamientos(request):
 
 @login_required
 def actualizar_asistencia_entrenamiento(request, pk):
+    es_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
     if request.method != 'POST':
         return redirect('lista_entrenamientos')
 
     if request.user.rol != 'ENTRENADOR':
+        if es_ajax:
+            return JsonResponse({'ok': False, 'error': 'No tienes permisos para registrar asistencia.'}, status=403)
         messages.error(request, 'No tienes permisos para registrar asistencia.')
         return redirect('lista_entrenamientos')
 
@@ -189,12 +245,36 @@ def actualizar_asistencia_entrenamiento(request, pk):
     )
 
     if entrenamiento.entrenador != request.user.entrenador:
+        if es_ajax:
+            return JsonResponse({'ok': False, 'error': 'No puedes gestionar este entrenamiento.'}, status=403)
         messages.error(request, 'No puedes gestionar asistencia en un entrenamiento que no creaste.')
         return redirect('lista_entrenamientos')
 
     jugador = get_object_or_404(Jugador, pk=request.POST.get('jugador_id'), equipo=entrenamiento.equipo)
     estado = request.POST.get('estado')
-    if estado not in ['asistio', 'falto']:
+    estados_asistencia = {
+        'asistio': {
+            'valor': True,
+            'label': 'Asistio',
+            'mensaje': 'asistio',
+            'badge': 'text-bg-success',
+        },
+        'falto': {
+            'valor': False,
+            'label': 'Falto',
+            'mensaje': 'falto',
+            'badge': 'text-bg-danger',
+        },
+        'sin_marcar': {
+            'valor': None,
+            'label': 'Sin marcar',
+            'mensaje': 'sin marcar',
+            'badge': 'text-bg-secondary',
+        },
+    }
+    if estado not in estados_asistencia:
+        if es_ajax:
+            return JsonResponse({'ok': False, 'error': 'Estado de asistencia invalido.'}, status=400)
         messages.error(request, 'Estado de asistencia invalido.')
         return redirect('lista_entrenamientos')
 
@@ -204,19 +284,33 @@ def actualizar_asistencia_entrenamiento(request, pk):
             jugador=jugador,
         )
     except (ProgrammingError, OperationalError):
+        if es_ajax:
+            return JsonResponse({'ok': False, 'error': 'La tabla de asistencia todavia no existe.'}, status=500)
         messages.error(request, 'La tabla de asistencia todavia no existe en la base de datos. Ejecuta las migraciones para habilitar esta funcion.')
         return redirect('lista_entrenamientos')
-    asistencia.asistio = {
-        'asistio': True,
-        'falto': False,
-    }[estado]
+    estado_config = estados_asistencia[estado]
+    asistencia.asistio = estado_config['valor']
     asistencia.save()
 
-    estado_label = {
-        'asistio': 'asistio',
-        'falto': 'falto',
-    }[estado]
-    messages.success(request, f'Asistencia actualizada: {jugador.nombres} {jugador.apellidos} {estado_label}.')
+    if es_ajax:
+        asistencias = AsistenciaEntrenamiento.objects.filter(entrenamiento=entrenamiento)
+        asistieron = asistencias.filter(asistio=True).count()
+        faltaron = asistencias.filter(asistio=False).count()
+        total_jugadores = Jugador.objects.filter(equipo=entrenamiento.equipo).count()
+        sin_marcar = max(0, total_jugadores - asistencias.exclude(asistio__isnull=True).count())
+        return JsonResponse({
+            'ok': True,
+            'jugador_id': jugador.id,
+            'estado': estado,
+            'estado_label': estado_config['label'],
+            'estado_badge': estado_config['badge'],
+            'asistieron': asistieron,
+            'faltaron': faltaron,
+            'sin_marcar': sin_marcar,
+            'message': f"{jugador.nombres} {jugador.apellidos}: {estado_config['mensaje']}.",
+        })
+
+    messages.success(request, f"Asistencia actualizada: {jugador.nombres} {jugador.apellidos} {estado_config['mensaje']}.")
     return redirect('lista_entrenamientos')
 
 
@@ -240,7 +334,11 @@ def crear_entrenamiento(request):
             entrenamiento.entrenador = request.user.entrenador
             entrenamiento.equipo = equipo
             entrenamiento.save()
-            messages.success(request, 'Sesion de entrenamiento programada correctamente.')
+            enviados = _enviar_correo_entrenamiento(entrenamiento, creado=True)
+            if enviados:
+                messages.success(request, f'Sesion programada. Se notifico a {enviados} jugador(es).')
+            else:
+                messages.success(request, 'Sesion programada. No habia correos de jugadores para notificar.')
             return redirect('lista_entrenamientos')
     else:
         form = EntrenamientoForm()
@@ -268,8 +366,12 @@ def editar_entrenamiento(request, pk):
     if request.method == 'POST':
         form = EntrenamientoForm(request.POST, instance=entrenamiento, fecha_hora=fecha_hora)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Entrenamiento actualizado correctamente.')
+            entrenamiento = form.save()
+            enviados = _enviar_correo_entrenamiento(entrenamiento, creado=False)
+            if enviados:
+                messages.success(request, f'Entrenamiento actualizado. Se notifico a {enviados} jugador(es).')
+            else:
+                messages.success(request, 'Entrenamiento actualizado. No habia correos de jugadores para notificar.')
             return redirect('lista_entrenamientos')
     else:
         form = EntrenamientoForm(instance=entrenamiento, fecha_hora=entrenamiento.fecha_hora)
@@ -291,8 +393,7 @@ def eliminar_entrenamiento(request, pk):
         return redirect('lista_entrenamientos')
 
     if request.method == 'POST':
-        entrenamiento.delete()
-        messages.success(request, 'El entrenamiento ha sido eliminado.')
+        messages.info(request, 'Los entrenamientos quedan en historial fijo y no se eliminan. Puedes editarlo si necesitas corregir datos.')
 
     return redirect('lista_entrenamientos')
 
@@ -339,6 +440,8 @@ def lista_entrenamientos_jugador(request):
             'equipo', 'entrenador', 'cancha'
         ).filter(equipo=equipo).order_by('fecha_hora')
         entrenamientos = list(entrenamientos)
+        for entrenamiento in entrenamientos:
+            entrenamiento.actualizar_estado(guardar=True)
         _asignar_estado_asistencia_jugador(entrenamientos, jugador)
 
     return render(request, 'entrenamientos/lista_jugador.html', {

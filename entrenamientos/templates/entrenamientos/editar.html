@@ -14,17 +14,21 @@
             border-radius: 24px;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light">
-    <nav class="navbar navbar-expand bg-primary shadow">
+    <nav class="navbar navbar-expand-md bg-primary shadow mb-4">
         <div class="container-fluid">
             <a href="{% url 'lista_entrenamientos' %}" class="d-flex align-items-center text-decoration-none">
                 <img src="{% static 'public/images/Logo.png' %}" alt="Logo" style="width:75px;height:75px;" class="me-2">
                 <span class="navbar-brand text-light fs-2 m-0">F.A.S</span>
             </a>
-            <a href="{% url 'lista_entrenamientos' %}" class="nav-link text-light ms-auto">
-                <i class="fas fa-arrow-left"></i> Regresar
-            </a>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <a href="{% url 'editar_perfil' %}" class="nav-link text-light">Modificar Perfil</a>
+                <a href="{% url 'lista_entrenamientos' %}" class="nav-link text-light">
+                    <i class="fas fa-arrow-left"></i> Regresar
+                </a>
+            </div>
         </div>
     </nav>
 
@@ -56,6 +60,23 @@
                                     <label class="form-label fw-bold">Fecha y hora *</label>
                                     {{ form.fecha_hora }}
                                     {% if form.fecha_hora.errors %}<div class="text-danger small mt-1">{{ form.fecha_hora.errors }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Fecha de finalizacion *</label>
+                                    {{ form.fecha_fin }}
+                                    {% if form.fecha_fin.errors %}<div class="text-danger small mt-1">{{ form.fecha_fin.errors }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Estado actual</label>
+                                    <div class="form-control bg-light">
+                                        {% if entrenamiento.estado == 'PROGRAMADO' %}
+                                            <span class="badge bg-info">Programado</span>
+                                        {% elif entrenamiento.estado == 'EN_CURSO' %}
+                                            <span class="badge bg-success">En curso</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Finalizado</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <div class="col-md-7">
                                     <label class="form-label fw-bold">Cancha disponible *</label>
@@ -138,5 +159,6 @@
             cargarCanchas();
         }
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

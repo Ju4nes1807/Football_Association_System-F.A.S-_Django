@@ -51,6 +51,8 @@
         #toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
         #toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
 <body class="flex flex-col min-h-screen bg-fas-gray-bg">
@@ -58,12 +60,12 @@
     <!-- NAVBAR -->
     <nav class="bg-fas-blue shadow-lg">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
+            <div class="flex items-center justify-between h-20 w-full">
                 <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
                     <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="navbar-logo mr-2 rounded-full shadow-md">
                     <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
                 </a>
-                <div class="flex items-center gap-4">
+                <div class="ml-auto flex items-center justify-end gap-2 flex-wrap">
                     {% if request.user.rol == 'ADMIN' %}
                         <a href="{% url 'dashboard_admin' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition duration-300 transform hover:scale-105">Regresar</a>
                     {% elif request.user.rol == 'ENTRENADOR' %}
@@ -74,22 +76,6 @@
                         <button type="submit" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Cerrar sesión</button>
                     </form>
                 </div>
-                <div class="md:hidden">
-                    <button id="menu-button" type="button" class="text-white hover:text-gray-200 focus:outline-none">
-                        <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
-            <div class="px-2 pt-2 pb-3">
-                {% if request.user.rol == 'ADMIN' %}
-                    <a href="{% url 'dashboard_admin' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">Regresar</a>
-                {% elif request.user.rol == 'ENTRENADOR' %}
-                    <a href="{% url 'dashboard_entrenador' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">Regresar</a>
-                {% endif %}
             </div>
         </div>
     </nav>
@@ -365,7 +351,6 @@
         });
 
         /* ── Navbar mobile ── */
-        $('menu-button').addEventListener('click', () => $('mobile-menu').classList.toggle('hidden'));
 
 const msgs = document.getElementById('django-messages');
 if (msgs) {
@@ -413,5 +398,6 @@ togglePassword('toggleNueva',  'password_nueva',  'eyeNueva');
     })();
     </script>
 
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

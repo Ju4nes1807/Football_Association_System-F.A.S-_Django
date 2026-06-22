@@ -19,6 +19,7 @@
         .fas-toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
         .fas-toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -67,6 +68,7 @@
                     <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
                     <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action">Jugadores</a>
+                    <a href="{% url 'torneos:entrenador_reporte_jugadores' %}" class="list-group-item list-group-item-action">Reportes</a>
                 </div>
             </div>
 
@@ -293,5 +295,6 @@ if (djangoMsgs && djangoMsgs.dataset.msg) {
 }
     })();
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

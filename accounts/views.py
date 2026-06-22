@@ -2,7 +2,9 @@ from django.contrib import messages
 
 from django.shortcuts import render, redirect
 from django.db import IntegrityError
+from django.db.models import Q
 from django.contrib.auth.views import LoginView
+from django.utils import timezone
 
 from inscripciones.views import _get_equipo_entrenador
 from .models import Jugador, Usuario, Entrenador
@@ -12,6 +14,16 @@ from django.urls import reverse, reverse_lazy
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from inscripciones.models import Equipo, Cancha
+from entrenamientos.models import Entrenamiento
+from torneos.models import InscripcionTorneo, Partido, Torneo
+
+def _dashboard_por_rol(user):
+    if user.rol == 'ADMIN':
+        return 'dashboard_admin'
+    if user.rol == 'JUGADOR':
+        return 'dashboard_jugador'
+    return 'dashboard_entrenador'
+
 
 def _handle_integrity_error(form, e):
     """Mapea errores de BD al campo correspondiente."""
@@ -175,44 +187,121 @@ def editar_perfil(request):
 @login_required
 def dashboard_admin(request):
     if request.user.rol != 'ADMIN':
-        return redirect('dashboard_entrenador')
+        return redirect(_dashboard_por_rol(request.user))
+
+    equipos_pendientes = Equipo.objects.filter(_estado=Equipo.Estado.ESPERA).count()
+    torneos_activos = Torneo.objects.filter(estado__in=[Torneo.Estado.PROXIMO, Torneo.Estado.EN_CURSO]).count()
+    partidos_pendientes = Partido.objects.exclude(estado__in=['FINALIZADO', 'SUSPENDIDO']).count()
+    equipos_eliminacion = Equipo.objects.filter(_eliminar_programada_para__isnull=False).count()
+    notificaciones = []
+    if equipos_pendientes:
+        notificaciones.append(f'Hay {equipos_pendientes} equipo(s) esperando revision.')
+    if equipos_eliminacion:
+        notificaciones.append(f'{equipos_eliminacion} equipo(s) tienen eliminacion programada.')
+    if partidos_pendientes:
+        notificaciones.append(f'{partidos_pendientes} partido(s) siguen pendientes de gestion.')
+    if not notificaciones:
+        notificaciones.append('El panel administrativo esta al dia. Buen momento para revisar calendario y canchas.')
 
     return render(request, 'accounts/roles/dashboardAdmin.html', {
         'total_equipos': Equipo.objects.count(),
         'total_canchas': Cancha.objects.count(),
+        'total_entrenadores': Entrenador.objects.count(),
+        'total_jugadores': Jugador.objects.count(),
+        'equipos_pendientes': equipos_pendientes,
+        'torneos_activos': torneos_activos,
+        'partidos_pendientes': partidos_pendientes,
+        'equipos_eliminacion': equipos_eliminacion,
+        'ultimos_equipos': Equipo.objects.select_related('entrenador').order_by('-fecha_registro')[:4],
+        'notificaciones': notificaciones,
     })
 
 
 @login_required
 def dashboard_entrenador(request):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect(_dashboard_por_rol(request.user))
+
     equipo          = _get_equipo_entrenador(request.user) if hasattr(request.user, 'entrenador') else None
     total_jugadores = Jugador.objects.filter(equipo=equipo).count() if equipo else 0
     total_canchas   = Cancha.objects.filter(_disponibilidad='DISPONIBLE').count()
+    total_entrenamientos = Entrenamiento.objects.filter(equipo=equipo).count() if equipo else 0
+    ahora = timezone.now()
+    proximos_entrenamientos = Entrenamiento.objects.filter(equipo=equipo, fecha_hora__gte=ahora).order_by('fecha_hora')[:3] if equipo else []
+    torneos_activos = InscripcionTorneo.objects.filter(
+        equipo=equipo,
+        estado='ACTIVA',
+        torneo__estado__in=[Torneo.Estado.PROXIMO, Torneo.Estado.EN_CURSO],
+    ).select_related('torneo').count() if equipo else 0
+    partidos_pendientes = 0
+    if equipo:
+        partidos_pendientes = Partido.objects.filter(
+            Q(equipo_local=equipo) | Q(equipo_visita=equipo)
+        ).exclude(estado__in=['FINALIZADO', 'SUSPENDIDO']).count()
+
+    notificaciones = []
+    if not equipo:
+        notificaciones.append('Registra o asocia tu equipo para activar entrenamientos, torneos y reportes.')
+    elif total_jugadores == 0:
+        notificaciones.append('Tu equipo aun no tiene jugadores. Agrega la plantilla para usar asistencia y reportes.')
+    elif partidos_pendientes:
+        notificaciones.append(f'Tienes {partidos_pendientes} partido(s) pendiente(s) por revisar.')
+    else:
+        notificaciones.append('Tu tablero esta al dia. Buen momento para planear la proxima sesion.')
 
     return render(request, 'accounts/roles/dashboardEntrenador.html', {
         'equipo':          equipo,
         'total_jugadores': total_jugadores,
         'total_canchas':   total_canchas,
+        'total_entrenamientos': total_entrenamientos,
+        'proximos_entrenamientos': proximos_entrenamientos,
+        'torneos_activos': torneos_activos,
+        'partidos_pendientes': partidos_pendientes,
+        'notificaciones': notificaciones,
     })
 
 @login_required
 def dashboard_jugador(request):
     if request.user.rol != 'JUGADOR':
-        return redirect('dashboard_entrenador')
+        return redirect(_dashboard_por_rol(request.user))
 
     user    = request.user
     jugador = getattr(user, 'jugador', None)
     equipo  = jugador.equipo if jugador else None
+    ahora = timezone.now()
+    proximos_entrenamientos = Entrenamiento.objects.filter(equipo=equipo, fecha_hora__gte=ahora).order_by('fecha_hora')[:3] if equipo else []
+    proximos_partidos = Partido.objects.filter(
+        Q(equipo_local=equipo) | Q(equipo_visita=equipo),
+        fecha__gte=ahora,
+    ).exclude(estado__in=['FINALIZADO', 'SUSPENDIDO']).select_related('torneo', 'equipo_local', 'equipo_visita').order_by('fecha')[:3] if equipo else []
+    torneos_activos = InscripcionTorneo.objects.filter(
+        equipo=equipo,
+        estado='ACTIVA',
+        torneo__estado__in=[Torneo.Estado.PROXIMO, Torneo.Estado.EN_CURSO],
+    ).count() if equipo else 0
+    notificaciones = []
+    if not equipo:
+        notificaciones.append('Aun no tienes equipo asignado. Cuando te vinculen, aqui veras tu agenda.')
+    elif proximos_partidos:
+        notificaciones.append(f'Tienes {len(proximos_partidos)} partido(s) proximos en agenda.')
+    elif proximos_entrenamientos:
+        notificaciones.append(f'Tienes {len(proximos_entrenamientos)} entrenamiento(s) proximos.')
+    else:
+        notificaciones.append('No tienes eventos proximos registrados. Mantente atento a nuevas programaciones.')
 
     return render(request, 'accounts/roles/dashboardJugador.html', {
         'jugador': jugador,
         'equipo':  equipo,
+        'proximos_entrenamientos': proximos_entrenamientos,
+        'proximos_partidos': proximos_partidos,
+        'torneos_activos': torneos_activos,
+        'notificaciones': notificaciones,
     })
 
 @login_required
 def mi_equipo_jugador(request):
     if request.user.rol != 'JUGADOR':
-        return redirect('dashboard_entrenador')
+        return redirect(_dashboard_por_rol(request.user))
 
     jugador = getattr(request.user, 'jugador', None)
     equipo  = jugador.equipo if jugador else None
@@ -220,4 +309,3 @@ def mi_equipo_jugador(request):
     return render(request, 'accounts/roles/mi_equipo_jugador.html', {
         'equipo': equipo,
     })
-    

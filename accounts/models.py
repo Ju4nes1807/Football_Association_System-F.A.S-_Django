@@ -201,6 +201,13 @@ class Entrenador(Usuario):
         except (ValueError, TypeError):
             raise ValueError('La experiencia debe ser un número válido entre 0 y 60.')
 
+    def save(self, *args, **kwargs):
+        if isinstance(self._experiencia, str):
+            import re
+            match = re.search(r'\d+', self._experiencia)
+            self._experiencia = int(match.group()) if match else 0
+        return super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = "Entrenador"
         verbose_name_plural = "Entrenadores"

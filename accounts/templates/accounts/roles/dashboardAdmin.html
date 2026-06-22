@@ -1,42 +1,19 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="{% static 'public/images/Logo.png' %}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <title>Sesion principal</title>
-
-    <style>
-        .footer-content {
-            flex-direction: column;
-        }
-
-        @media (min-width: 576px) {
-            .footer-content {
-                flex-direction: row;
-            }
-        }
-
-        @media (max-width: 767.98px) {
-            .sidebar {
-                border-right: none !important;
-                border-bottom: 1px solid #dee2e6;
-                padding-bottom: 1rem;
-                margin-bottom: 1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
+    <title>Inicio | F.A.S</title>
 </head>
-
 <body class="d-flex flex-column min-vh-100">
-
     <div class="navbar navbar-expand-md bg-primary shadow mb-4">
-        <a href="landinpage.html" class="d-flex align-items-center">
-            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
+        <a href="{% url 'landingpage' %}" class="d-flex align-items-center text-decoration-none">
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
             <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
         </a>
 
@@ -47,15 +24,13 @@
         <div class="collapse navbar-collapse" id="navNavbarDropdown">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="nav-link text-light shadow btn btn-link">
-                        Cerrar sesión
-                    </button>
-                </form>                    
+                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url 'editar_perfil' %}" class="nav-link text-light shadow">Modificar Perfil</a>
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link text-light shadow btn btn-link">Cerrar sesion</button>
+                    </form>
                 </li>
             </ul>
         </div>
@@ -63,233 +38,147 @@
 
     <div class="container-fluid flex-grow-1">
         <div class="row">
-            <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
-                <h5 class="mb-3 text-primary">Inicio</h5>
-
+            <aside class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top:1rem;height:fit-content;">
+                <h5 class="mb-3 text-primary">Menu</h5>
                 <div class="list-group">
-                    <a th:href="@{/admin/dashboard}" class="list-group-item list-group-item-action active">Inicio</a>
+                    <a href="{% url 'dashboard_admin' %}" class="list-group-item list-group-item-action active">Inicio</a>
                     <a href="{% url 'inscripciones:lista_equipos' %}" class="list-group-item list-group-item-action">Equipos</a>
                     <a href="{% url 'torneos:admin_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas' %}" class="list-group-item list-group-item-action">Canchas</a>
                 </div>
-            </div>
+            </aside>
 
-            <div class="col-12 col-md-9 col-lg-10 p-4">
-                <h2>{{ request.user.nombres }} {{ request.user.apellidos }}</h2>
-                <p>Aquí podrás ver un resumen de los equipos, tornes y canchas.</p>
+            <main class="col-12 col-md-9 col-lg-10 p-4">
+                <section class="fas-welcome-panel">
+                    <div class="fas-welcome-hero">
+                        <span class="fas-kicker"><i class="fas fa-house"></i> Inicio</span>
+                        <h1>Hola, {{ request.user.nombres }}. Todo listo para acompanar la jornada.</h1>
+                        <p>Entra directo a lo que necesitas, revisa novedades y manten el sistema organizado sin sentir que estas en un panel complicado.</p>
+                    </div>
+                    <div class="fas-note-card">
+                        <i class="fas fa-bell"></i>
+                        <div>
+                            <strong>Consejo rapido</strong>
+                            <p>Antes de crear algo nuevo, revisa equipos, torneos y canchas para evitar registros repetidos.</p>
+                        </div>
+                        <span class="fas-card-meta"><i class="fas fa-heart"></i> Buen ritmo hoy</span>
+                    </div>
+                </section>
 
-                <!-- Tarjetas del Dashboard -->
-                <div class="row mt-4">
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning">
-                            <div class="card-body text-center">
-                                <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
-                <h5 class="card-title">Equipos</h5>
-                <p class="text-muted">Equipos registrados en el sistema</p>
-                <!-- ── AGREGADO: contador ── -->
-                <h2 class="fw-bold text-primary">{{ total_equipos }}</h2>
-                            </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Puedes empezar por una tarea sencilla: confirmar que la informacion visible para los usuarios este clara y actualizada.
+                </div>
+
+                <section class="fas-metric-grid mb-4">
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-shield-alt"></i></span>
+                        <strong>{{ total_equipos }}</strong>
+                        <small>Equipos registrados</small>
+                    </div>
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-user-tie"></i></span>
+                        <strong>{{ total_entrenadores }}</strong>
+                        <small>Entrenadores</small>
+                    </div>
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-users"></i></span>
+                        <strong>{{ total_jugadores }}</strong>
+                        <small>Jugadores</small>
+                    </div>
+                    <div class="fas-metric-card">
+                        <span><i class="fas fa-trophy"></i></span>
+                        <strong>{{ torneos_activos }}</strong>
+                        <small>Torneos activos</small>
+                    </div>
+                </section>
+
+                <section class="fas-dashboard-row mb-4">
+                    <div class="fas-panel">
+                        <div class="fas-panel-head">
+                            <h2><i class="fas fa-bell"></i> Notificaciones</h2>
+                            <span>{{ notificaciones|length }}</span>
+                        </div>
+                        <div class="fas-list-flow">
+                            {% for item in notificaciones %}
+                                <div class="fas-list-note">
+                                    <i class="fas fa-circle-info"></i>
+                                    <span>{{ item }}</span>
+                                </div>
+                            {% endfor %}
                         </div>
                     </div>
-
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-                        <div class="card border-warning">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Torneos</h5>
-                                <p>Consulte la información de los torneos realizados en el sistema</p>
-                                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
-                            </div>
+                    <div class="fas-panel">
+                        <div class="fas-panel-head">
+                            <h2><i class="fas fa-clock"></i> Revision rapida</h2>
+                            <span>{{ equipos_pendientes }} pendientes</span>
+                        </div>
+                        <div class="fas-list-flow">
+                            {% for equipo in ultimos_equipos %}
+                                <a href="{% url 'inscripciones:lista_equipos' %}?nombre={{ equipo.nombre }}" class="fas-list-note fas-list-link">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>{{ equipo.nombre }} · {{ equipo.estado_display }}</span>
+                                </a>
+                            {% empty %}
+                                <div class="fas-empty-state">
+                                    <i class="fas fa-check-circle"></i>
+                                    <strong>Sin equipos recientes</strong>
+                                    <p>Cuando lleguen registros nuevos apareceran aqui.</p>
+                                </div>
+                            {% endfor %}
                         </div>
                     </div>
+                </section>
 
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-    <div class="card border-warning">
-        <div class="card-body text-center">
-            <i class="fas fa-futbol fa-3x text-warning mb-3"></i>
-            <h5 class="card-title">Canchas</h5>
-            <p>Todas las canchas registradas en el sistema</p>
-            <h2 class="fw-bold text-primary">{{ total_canchas }}</h2>
-        </div>
-    </div>
-</div>
+                <section class="fas-home-grid">
+                    <a href="{% url 'inscripciones:lista_equipos' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-shield-alt"></i></span>
+                        <div>
+                            <h3>Equipos</h3>
+                            <p>Consulta equipos registrados y revisa su estado.</p>
+                        </div>
+                        <span class="fas-card-meta">{{ total_equipos }} registrados</span>
+                    </a>
 
-                    <div class="col-12 col-md-6 col-lg-4 mb-4">
-    <div class="card border-warning h-100">
-        <div class="card-body text-center d-flex flex-column justify-content-between">
-            <div>
-                <h5 class="card-title">Administradores</h5>
-                <p>Registra nuevos administradores en el sistema</p>
-                <i class="fas fa-user-shield fa-3x text-warning mb-3"></i>
-            </div>
-            <a href="{% url 'register_admin' %}" class="btn btn-primary mt-2">
-                <i class="fas fa-user-plus me-1"></i> Crear Administrador
-            </a>
-        </div>
-    </div>
-</div>
-                </div>
-            </div>
-        </div>
-    </div>
+                    <a href="{% url 'torneos:admin_lista_torneos' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-trophy"></i></span>
+                        <div>
+                            <h3>Torneos</h3>
+                            <p>Crea partidos y manten el calendario competitivo al dia.</p>
+                        </div>
+                        <span class="fas-card-meta">Ver torneos</span>
+                    </a>
 
-    <!-- MODALES LIMPIOS DE LARAVEL -->
-    <!-- Escuela -->
-    <div class="modal fade" id="consultarEscuela" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title">Nombre de la Escuela</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                    <a href="{% url 'inscripciones:lista_canchas' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-location-dot"></i></span>
+                        <div>
+                            <h3>Canchas</h3>
+                            <p>Revisa espacios disponibles para entrenamientos y partidos.</p>
+                        </div>
+                        <span class="fas-card-meta">{{ total_canchas }} canchas</span>
+                    </a>
 
-                <div class="modal-body">
-                    <h3>Información General</h3>
-                    <ul class="list-unstyled">
-                        <li><strong>Localidad:</strong> - </li>
-                        <li><strong>Barrio:</strong> - </li>
-                        <li><strong>Dirección:</strong> - </li>
-                        <li><strong>Administrador:</strong> Usuario</li>
-                        <li><strong>Max. Usuarios:</strong> - </li>
-                    </ul>
-
-                    <h3>Contacto</h3>
-                    <ul class="list-unstyled">
-                        <li><strong>Teléfono:</strong> - </li>
-                        <li><strong>Correo Electrónico:</strong> - </li>
-                    </ul>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-danger"><i class="fas fa-trash"></i></button>
-                    <button class="btn btn-primary"><i class="fas fa-edit"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Entrenamientos -->
-    <div class="modal fade" id="buscarEntrenamientos" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title">Buscar Entrenamientos</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-3" placeholder="Buscar...">
-                    <ul class="list-group"></ul>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Torneos -->
-    <div class="modal fade" id="consultarTorneos" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title">Mis Torneos</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <table class="table table-hover table-striped">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Descripción</th>
-                                <th>Fecha Inicio</th>
-                                <th>Fecha Fin</th>
-                                <th>Categoría</th>
-                                <th>Ubicación</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td><span class="badge bg-secondary">N/A</span></td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- Canchas -->
-    <div class="modal fade" id="consultarCanchas" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title">Mis Canchas</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <table class="table table-hover table-striped">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Tipo</th>
-                                <th>Descripción</th>
-                                <th>Dirección</th>
-                                <th>Localidad</th>
-                                <th>Barrio</th>
-                                <th>Estado</th>
-                                <th>Escuela</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td><span class="badge bg-secondary">N/A</span></td>
-                                <td>-</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-            </div>
+                    <a href="{% url 'register_admin' %}" class="fas-home-card">
+                        <span class="fas-card-icon"><i class="fas fa-user-plus"></i></span>
+                        <div>
+                            <h3>Nuevo administrador</h3>
+                            <p>Agrega una persona de apoyo cuando sea necesario.</p>
+                        </div>
+                        <span class="fas-card-meta">Crear usuario</span>
+                    </a>
+                </section>
+            </main>
         </div>
     </div>
 
     <footer class="bg-warning py-3 mt-3 shadow mt-auto">
         <div class="container text-start d-flex align-items-center footer-content shadow">
-            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width: 75px; height: 75px;">
-            <p class="text-dark m-0">© Football Association System. Todos los derechos reservados</p>
+            <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+            <p class="text-dark m-0">&copy; Football Association System. Todos los derechos reservados</p>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="validaciones.js"></script>
-
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
-
 </html>

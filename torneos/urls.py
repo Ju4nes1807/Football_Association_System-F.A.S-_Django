@@ -27,6 +27,7 @@ urlpatterns = [
     path('entrenador/cancelar/<int:inscripcion_id>/',  views.entrenador_cancelar_inscripcion, name='entrenador_cancelar'),
     path('entrenador/<int:torneo_id>/mis-partidos/',   views.entrenador_mis_partidos,         name='entrenador_mis_partidos'),
     path('entrenador/partido/<int:partido_id>/estadisticas/', views.entrenador_estadisticas_partido, name='entrenador_estadisticas_partido'),
+    path('entrenador/reportes/jugadores/',             views.entrenador_reporte_jugadores,    name='entrenador_reporte_jugadores'),
     # Jugador
     path('jugador/mis-torneos/',                       views.jugador_mis_torneos,             name='jugador_mis_torneos'),
     path('jugador/mis-torneos/datos/',                 views.jugador_mis_torneos_datos,       name='jugador_mis_torneos_datos'),

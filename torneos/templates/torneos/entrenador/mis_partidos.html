@@ -15,6 +15,7 @@
         .pos-3 { background: #fff4ee; }
         @media (max-width:767.98px) { .sidebar { border-bottom: 1px solid #dee2e6; padding-bottom:1rem; margin-bottom:1rem; } }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 <body class="d-flex flex-column min-vh-100">
 
@@ -52,6 +53,7 @@
                     <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action active">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
                     <a href="{% url 'inscripciones:lista_jugadores' %}" class="list-group-item list-group-item-action">Jugadores</a>
+                    <a href="{% url 'torneos:entrenador_reporte_jugadores' %}" class="list-group-item list-group-item-action">Reportes</a>
                 </div>
             </div>
 
@@ -195,5 +197,6 @@
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>

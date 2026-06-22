@@ -85,6 +85,7 @@
         #submitBtn.loading .btn-text { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 
 <body class="flex flex-col min-h-screen bg-fas-gray-bg">
@@ -92,32 +93,17 @@
     <!-- ── NAVBAR ── -->
     <nav class="bg-fas-blue shadow-lg">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
+            <div class="flex items-center justify-between h-20 w-full">
                 <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
                     <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="navbar-logo mr-2 rounded-full shadow-md">
                     <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
                 </a>
-                <div class="hidden md:flex items-center space-x-4">
+                <div class="ml-auto flex items-center justify-end space-x-4">
                     <a href="{% url 'landingpage' %}"
                         class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-yellow-400 transition duration-300 transform hover:scale-105">
                         Regresar
                     </a>
                 </div>
-                <div class="md:hidden">
-                    <button id="menu-button" type="button"
-                        class="text-white hover:text-gray-200 focus:outline-none" aria-label="Toggle navigation">
-                        <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
-            <div class="px-2 pt-2 pb-3">
-                <a href="{% url 'landingpage' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">
-                    Regresar
-                </a>
             </div>
         </div>
     </nav>
@@ -313,7 +299,6 @@
         });
 
         /* ── Navbar mobile ── */
-        $('menu-button').addEventListener('click', () => $('mobile-menu').classList.toggle('hidden'));
 
     })();
     </script>

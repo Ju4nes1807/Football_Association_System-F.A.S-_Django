@@ -1,7 +1,8 @@
 import json
 import re
+from copy import copy
 
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -24,6 +25,90 @@ from django.contrib.auth import update_session_auth_hash
 from django.utils import timezone
 from .utils import validar_edad_categoria, _enviar_credenciales_jugador, geodificar_direccion, enviar_credenciales_jugadores_lote
 from .constants import MENSAJE_ELIMINACION_PROGRAMADA
+
+MOTIVOS_RECHAZO_EQUIPO = [
+    ('DOCUMENTOS', 'Documentacion incompleta'),
+    ('DATOS', 'Datos inconsistentes'),
+    ('CATEGORIA', 'Categoria no corresponde'),
+    ('DUPLICADO', 'Equipo duplicado'),
+    ('CONTACTO', 'No fue posible contactar al entrenador'),
+    ('OTRO', 'Otro motivo'),
+]
+
+MOTIVOS_ELIMINACION_EQUIPO = [
+    ('SOLICITUD', 'Solicitud del entrenador'),
+    ('INACTIVIDAD', 'Inactividad prolongada'),
+    ('INCUMPLIMIENTO', 'Incumplimiento de normas'),
+    ('DATOS', 'Datos falsos o inconsistentes'),
+    ('DISCIPLINA', 'Problemas disciplinarios'),
+    ('OTRO', 'Otro motivo'),
+]
+
+
+def _construir_motivo(opcion, detalle, opciones):
+    opcion = (opcion or '').strip()
+    detalle = (detalle or '').strip()
+    etiquetas = dict(opciones)
+    if opcion == 'OTRO':
+        return detalle
+    etiqueta = etiquetas.get(opcion, '').strip()
+    if etiqueta and detalle:
+        return f'{etiqueta}: {detalle}'
+    return etiqueta or detalle
+
+
+def _pdf_escape(value):
+    return str(value).replace('\\', '\\\\').replace('(', '\\(').replace(')', '\\)')
+
+
+def _generar_pdf_equipos(equipos, filtros=None):
+    filtros = filtros or {}
+    filtros_aplicados = ', '.join(
+        f'{clave}: {valor}' for clave, valor in filtros.items() if valor
+    ) or 'Sin filtros'
+    lines = [
+        'Reporte de equipos F.A.S',
+        f'Fecha: {date.today().strftime("%d/%m/%Y")}',
+        f'Filtros: {filtros_aplicados}',
+        f'Total equipos: {len(equipos)}',
+        '',
+        'Equipo | Estado | Categoria | Localidad | Entrenador | Correo',
+    ]
+    for equipo in equipos[:44]:
+        lines.append(
+            f'{equipo.nombre} | {equipo.estado_display} | {equipo.categoria_display} | '
+            f'{equipo.localidad} | {equipo.entrenador.nombres} {equipo.entrenador.apellidos} | {equipo.entrenador.email}'
+        )
+
+    stream = ['BT', '/F1 10 Tf', '40 790 Td', '13 TL']
+    for index, line in enumerate(lines):
+        if index:
+            stream.append('T*')
+        stream.append(f'({_pdf_escape(line)}) Tj')
+    stream.append('ET')
+    content = '\n'.join(stream).encode('latin-1', errors='replace')
+    objects = [
+        b'<< /Type /Catalog /Pages 2 0 R >>',
+        b'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        b'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+        b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+        b'<< /Length ' + str(len(content)).encode('ascii') + b' >>\nstream\n' + content + b'\nendstream',
+    ]
+    output = io.BytesIO()
+    output.write(b'%PDF-1.4\n')
+    offsets = [0]
+    for number, obj in enumerate(objects, start=1):
+        offsets.append(output.tell())
+        output.write(f'{number} 0 obj\n'.encode('ascii'))
+        output.write(obj)
+        output.write(b'\nendobj\n')
+    xref = output.tell()
+    output.write(f'xref\n0 {len(objects) + 1}\n'.encode('ascii'))
+    output.write(b'0000000000 65535 f \n')
+    for offset in offsets[1:]:
+        output.write(f'{offset:010d} 00000 n \n'.encode('ascii'))
+    output.write(f'trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF'.encode('ascii'))
+    return output.getvalue()
 
 def _get_equipo_entrenador(user):
     """Retorna el equipo del entrenador o None."""
@@ -474,6 +559,12 @@ def eliminar_equipo(request, equipo_id):
                 return redirect('inscripciones:lista_equipos')
 
             motivo = request.POST.get('motivo_eliminacion', '')
+            if not motivo:
+                motivo = _construir_motivo(
+                    request.POST.get('motivo_tipo_eliminacion'),
+                    request.POST.get('motivo_eliminacion_manual'),
+                    MOTIVOS_ELIMINACION_EQUIPO,
+                )
             _agendar_eliminacion_equipo(request, equipo, motivo)
             return redirect('inscripciones:lista_equipos')
 
@@ -510,6 +601,71 @@ def lista_equipos(request):
         equipos = equipos.filter(_estado=estado)
     if eliminacion == 'si':
         equipos = equipos.filter(_eliminar_programada_para__isnull=False)
+
+    export = request.GET.get('export', '').strip().lower()
+    equipos_export = list(equipos.select_related('entrenador'))
+    if export == 'excel':
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Equipos'
+        ws.append(['Reporte de equipos y entrenadores F.A.S'])
+        ws.append([f'Fecha: {date.today().strftime("%d/%m/%Y")}'])
+        ws.append([f'Filtros: nombre={nombre or "todos"}; localidad={localidad or "todas"}; estado={estado or "todos"}; eliminacion={eliminacion or "todos"}'])
+        ws.append([])
+        ws.append([
+            'Equipo', 'Estado', 'Categoria', 'Localidad', 'Barrio', 'Fundacion',
+            'Entrenador', 'Documento entrenador', 'Correo entrenador', 'Telefono entrenador',
+            'Experiencia', 'Eliminacion programada', 'Motivo eliminacion', 'Motivo rechazo'
+        ])
+        header_row = ws.max_row
+        for equipo in equipos_export:
+            ws.append([
+                equipo.nombre,
+                equipo.estado_display,
+                equipo.categoria_display,
+                equipo.localidad,
+                equipo.barrio,
+                equipo.anio_fundacion,
+                f'{equipo.entrenador.nombres} {equipo.entrenador.apellidos}',
+                equipo.entrenador.num_documento,
+                equipo.entrenador.email,
+                equipo.entrenador.telefono,
+                equipo.entrenador.experiencia,
+                equipo.eliminar_programada_para.strftime('%d/%m/%Y %H:%M') if equipo.eliminar_programada_para else '',
+                equipo.motivo_eliminacion or '',
+                equipo.motivo_rechazo or '',
+            ])
+        ws.freeze_panes = f'A{header_row + 1}'
+        for cell in ws[header_row]:
+            font = copy(cell.font)
+            fill = copy(cell.fill)
+            font.bold = True
+            font.color = 'FFFFFF'
+            fill.fill_type = 'solid'
+            fill.fgColor = '0D47A1'
+            cell.font = font
+            cell.fill = fill
+        for column in ws.columns:
+            letter = column[0].column_letter
+            ws.column_dimensions[letter].width = min(34, max(12, max(len(str(cell.value or '')) for cell in column) + 2))
+        output = io.BytesIO()
+        wb.save(output)
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="reporte_equipos_entrenadores.xlsx"'
+        return response
+
+    if export == 'pdf':
+        response = HttpResponse(_generar_pdf_equipos(equipos_export, {
+            'nombre': nombre,
+            'localidad': localidad,
+            'estado': estado,
+            'eliminacion': eliminacion,
+        }), content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_equipos_entrenadores.pdf"'
+        return response
     
     paginator = Paginator(equipos, 12)
     page      = request.GET.get('page')
@@ -522,6 +678,8 @@ def lista_equipos(request):
         'estado':      estado,
         'eliminacion': eliminacion,
         'estados':   Equipo.Estado.choices,
+        'motivos_rechazo': MOTIVOS_RECHAZO_EQUIPO,
+        'motivos_eliminacion': MOTIVOS_ELIMINACION_EQUIPO,
         'total': paginator.count,
     })
 
@@ -543,6 +701,12 @@ def aprobar_equipo(request, equipo_id):
 
     elif accion == 'rechazar':
         motivo = request.POST.get('motivo', '').strip()
+        if not motivo:
+            motivo = _construir_motivo(
+                request.POST.get('motivo_tipo'),
+                request.POST.get('motivo_manual'),
+                MOTIVOS_RECHAZO_EQUIPO,
+            )
         if not motivo:
             messages.error(request, 'Debes indicar el motivo del rechazo.')
             return redirect('inscripciones:lista_equipos')
@@ -567,6 +731,12 @@ def programar_eliminacion_equipo(request, equipo_id):
         return redirect('inscripciones:lista_equipos')
 
     motivo = request.POST.get('motivo_eliminacion', '')
+    if not motivo:
+        motivo = _construir_motivo(
+            request.POST.get('motivo_tipo_eliminacion'),
+            request.POST.get('motivo_eliminacion_manual'),
+            MOTIVOS_ELIMINACION_EQUIPO,
+        )
     _agendar_eliminacion_equipo(request, equipo, motivo)
     return redirect('inscripciones:lista_equipos')
 

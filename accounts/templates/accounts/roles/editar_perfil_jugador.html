@@ -96,6 +96,8 @@
             border-left: 5px solid #ef4444;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
 <body class="flex flex-col min-h-screen bg-fas-gray-bg">
@@ -103,34 +105,18 @@
     <!-- NAVBAR -->
     <nav class="bg-fas-blue shadow-lg">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
+            <div class="flex items-center justify-between h-20 w-full">
                 <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
                 <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-16 h-16 rounded-full shadow-md mr-2">
                 <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
             </a>
-                <div class="flex items-center space-x-4">
-                    <a href="{% url 'dashboard_jugador' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition duration-300 transform hover:scale-105 hidden md:inline">Regresar</a>
-                    <form method="POST" action="{% url 'logout' %}" class="hidden md:inline">
+                <div class="ml-auto flex items-center justify-end gap-2 flex-wrap">
+                    <a href="{% url 'dashboard_jugador' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition duration-300 transform hover:scale-105">Regresar</a>
+                    <form method="POST" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button type="submit" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Cerrar sesión</button>
                     </form>
                 </div>
-                <div class="md:hidden">
-                    <button id="menu-button" type="button" class="text-white hover:text-gray-200 focus:outline-none">
-                        <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
-            <div class="px-2 pt-2 pb-3">
-                <a href="{% url 'dashboard_jugador' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">Regresar</a>
-                <form method="POST" action="{% url 'logout' %}" class="pt-2">
-                    {% csrf_token %}
-                    <button type="submit" class="w-full text-white hover:bg-fas-blue/80 text-center font-medium py-2 px-3 rounded-md">Cerrar sesión</button>
-                </form>
             </div>
         </div>
     </nav>
@@ -437,7 +423,6 @@
                     $(id)?.addEventListener('keypress', e => { if (!/[0-9]/.test(e.key)) e.preventDefault(); });
                 });
 
-                $('menu-button').addEventListener('click', () => $('mobile-menu').classList.toggle('hidden'));
 
                 const msgs = document.getElementById('django-messages');
                 if (msgs && msgs.dataset.msg) showToast(msgs.dataset.msg, msgs.dataset.type || 'success');
@@ -477,6 +462,7 @@
 
             })();
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 
 </html>

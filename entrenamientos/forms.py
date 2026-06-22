@@ -59,14 +59,18 @@ class EntrenamientoForm(forms.ModelForm):
 
     class Meta:
         model = Entrenamiento
-        fields = ['nombre', 'cancha', 'fecha_hora', 'descripcion']
+        fields = ['nombre', 'cancha', 'fecha_hora', 'fecha_fin', 'descripcion']
         widgets = {
             'nombre': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ej: Circuito de definicion y presion alta',
                 'maxlength': '100'
             }),
-            'fecha_hora': forms.DateTimeInput(attrs={
+            'fecha_hora': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'fecha_fin': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={
                 'class': 'form-control',
                 'type': 'datetime-local'
             }),
@@ -79,6 +83,8 @@ class EntrenamientoForm(forms.ModelForm):
 
     def __init__(self, *args, fecha_hora=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['fecha_hora'].input_formats = ['%Y-%m-%dT%H:%M']
+        self.fields['fecha_fin'].input_formats = ['%Y-%m-%dT%H:%M']
         fecha_base = fecha_hora
 
         if not fecha_base and self.is_bound:
@@ -93,14 +99,20 @@ class EntrenamientoForm(forms.ModelForm):
 
     def clean_fecha_hora(self):
         fecha = self.cleaned_data.get('fecha_hora')
-        if fecha and fecha < timezone.now():
+        if fecha and fecha < timezone.now() and not (self.instance and self.instance.pk):
             raise forms.ValidationError('No puedes programar un entrenamiento para una fecha que ya paso.')
         return fecha
 
     def clean(self):
         cleaned_data = super().clean()
         fecha_hora = cleaned_data.get('fecha_hora')
+        fecha_fin = cleaned_data.get('fecha_fin')
         cancha = cleaned_data.get('cancha')
+
+        if fecha_hora and fecha_fin and fecha_fin < fecha_hora:
+            self.add_error('fecha_fin', 'La fecha de finalizacion debe ser igual o posterior al inicio.')
+        elif fecha_hora and not fecha_fin:
+            cleaned_data['fecha_fin'] = fecha_hora
 
         if cancha and fecha_hora:
             disponibles = obtener_canchas_disponibles(

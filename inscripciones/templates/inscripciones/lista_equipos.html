@@ -17,17 +17,21 @@
         .fas-toast.success { background: #d1fae5; color: #065f46; border-left: 5px solid #10b981; }
         .fas-toast.error   { background: #fee2e2; color: #7f1d1d; border-left: 5px solid #ef4444; }
     </style>
+    <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
 </head>
 
 <body class="d-flex flex-column min-vh-100">
 
     <!-- NAVBAR -->
-    <div class="navbar navbar-expand bg-primary shadow mb-4">
-        <a href="{% url 'landingpage' %}">
+    <div class="navbar navbar-expand-md bg-primary shadow mb-4">
+        <a href="{% url 'landingpage' %}" class="d-flex align-items-center text-decoration-none">
             <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="img-fluid me-2" style="width:75px;height:75px">
+            <p class="navbar-brand text-light fs-2 shadow m-0">F.A.S</p>
         </a>
-        <p class="navbar-brand text-light fs-2 shadow">F.A.S</p>
-        <div class="collapse navbar-collapse">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navNavbarDropdown">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navNavbarDropdown">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
                     <form method="POST" action="{% url 'logout' %}">
@@ -46,7 +50,7 @@
         <div class="row">
 
             <!-- SIDEBAR -->
-            <div class="col-12 col-md-3 col-lg-2 sidebar mb-3 mt-4 pt-3 sticky-top" style="top: 1rem; height: fit-content;">
+            <div class="col-12 col-md-3 col-lg-2 sidebar sticky-top" style="top: 1rem; height: fit-content;">
                 <h5 class="mb-3 text-primary">Equipos</h5>
                 <div class="list-group">
                     <a href="{% url 'dashboard_admin' %}" class="list-group-item list-group-item-action">Inicio</a>
@@ -109,6 +113,12 @@
                             <div class="d-flex gap-2 mt-3">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-search me-1"></i> Buscar
+                                </button>
+                                <button type="submit" name="export" value="excel" class="btn btn-success">
+                                    <i class="fas fa-file-excel me-1"></i> Excel
+                                </button>
+                                <button type="submit" name="export" value="pdf" class="btn btn-danger">
+                                    <i class="fas fa-file-pdf me-1"></i> PDF
                                 </button>
                                 <a href="{% url 'inscripciones:lista_equipos' %}" class="btn btn-warning">
                                     <i class="fas fa-sync-alt me-1"></i> Limpiar
@@ -329,9 +339,15 @@
                     <p>Vas a rechazar el equipo <strong id="rechazo-nombre-equipo"></strong>.</p>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Motivo del rechazo <span class="text-danger">*</span></label>
-                        <textarea name="motivo" id="motivo-rechazo" rows="4"
+                        <select name="motivo_tipo" id="motivo-rechazo-select" class="form-select mb-2">
+                            <option value="">Selecciona un motivo</option>
+                            {% for valor, etiqueta in motivos_rechazo %}
+                                <option value="{{ valor }}">{{ etiqueta }}</option>
+                            {% endfor %}
+                        </select>
+                        <textarea name="motivo_manual" id="motivo-rechazo" rows="4"
                             class="form-control"
-                            placeholder="Explica el motivo del rechazo..."></textarea>
+                            placeholder="Agrega detalle o escribe el motivo si seleccionas Otro..."></textarea>
                         <div class="invalid-feedback" id="err-motivo">
                             El motivo es obligatorio.
                         </div>
@@ -367,8 +383,14 @@
                 <div class="modal-body">
                     Se programará la eliminación del equipo <strong id="modal-nombre-equipo"></strong> en 3 días.
                     <div class="mt-3">
-                        <label class="form-label fw-semibold">Motivo de eliminación (obligatorio si está aprobado)</label>
-                        <textarea id="motivo-eliminacion-text" class="form-control" rows="3" placeholder="Explica el motivo..."></textarea>
+                        <label class="form-label fw-semibold">Motivo de eliminacion (obligatorio si esta aprobado)</label>
+                        <select id="motivo-eliminacion-select" class="form-select mb-2">
+                            <option value="">Selecciona un motivo</option>
+                            {% for valor, etiqueta in motivos_eliminacion %}
+                                <option value="{{ valor }}" data-label="{{ etiqueta }}">{{ etiqueta }}</option>
+                            {% endfor %}
+                        </select>
+                        <textarea id="motivo-eliminacion-text" class="form-control" rows="3" placeholder="Agrega detalle o escribe el motivo si seleccionas Otro..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -412,12 +434,18 @@
                 document.getElementById('modal-nombre-equipo').textContent = btn.getAttribute('data-nombre');
                 const motivo = document.getElementById('motivo-eliminacion-text');
                 if (motivo) motivo.value = '';
+                const motivoSelect = document.getElementById('motivo-eliminacion-select');
+                if (motivoSelect) motivoSelect.value = '';
             });
         });
         document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
             if (!formId) return;
             const form = document.getElementById(formId);
-            const motivo = document.getElementById('motivo-eliminacion-text')?.value || '';
+            const motivoSelect = document.getElementById('motivo-eliminacion-select');
+            const selected = motivoSelect?.selectedOptions?.[0];
+            const tipo = motivoSelect?.value || '';
+            const detalle = document.getElementById('motivo-eliminacion-text')?.value.trim() || '';
+            const motivo = tipo === 'OTRO' ? detalle : [selected?.dataset?.label || '', detalle].filter(Boolean).join(': ');
             const hiddenInput = form?.querySelector('input[name="motivo_eliminacion"]');
             if (hiddenInput) hiddenInput.value = motivo;
             form?.submit();
@@ -442,13 +470,16 @@ modalRechazo.addEventListener('show.bs.modal', function(e) {
 
 // Validar motivo antes de enviar
 document.getElementById('formRechazo').addEventListener('submit', function(e) {
+    const tipo = document.getElementById('motivo-rechazo-select').value;
     const motivo = document.getElementById('motivo-rechazo').value.trim();
-    if (!motivo) {
+    if (!tipo && !motivo) {
         e.preventDefault();
         document.getElementById('motivo-rechazo').classList.add('is-invalid');
+        document.getElementById('motivo-rechazo-select').classList.add('is-invalid');
     }
 });
     })();
     </script>
+    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
 </body>
 </html>
