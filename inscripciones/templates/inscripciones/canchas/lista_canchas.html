@@ -23,6 +23,7 @@
             bottom: 24px;
             right: 24px;
             z-index: 9999;
+            pointer-events: none;
         }
 
         .fas-toast {
@@ -31,18 +32,15 @@
             border-radius: 12px;
             font-weight: 600;
             font-size: .9rem;
-            display: flex;
+            display: none;
             align-items: center;
             gap: 10px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
-            transform: translateY(80px);
-            opacity: 0;
             transition: all .35s cubic-bezier(.34, 1.56, .64, 1);
         }
 
         .fas-toast.show {
-            transform: translateY(0);
-            opacity: 1;
+            display: flex;
         }
 
         .fas-toast.success {
@@ -653,7 +651,7 @@
 
 })();
 </script>
-    <script src="{% static 'public/js/fas-app.js' %}?v=16"></script>
+    
 </body>
 
 </html>

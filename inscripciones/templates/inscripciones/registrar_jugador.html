@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="m-0 p-0 w-full h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={theme:{extend:{colors:{'fas-blue':'#1a73e8','fas-dark-blue':'#0d47a1','fas-yellow':'#ffb300','fas-gray-bg':'#f4f6f9'}}}}</script>
     <style>
+        /* RESET COMPLETO PARA EVITAR MÁRGENES DE OTROS CSS */
+        html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+        
         .field-error input, .field-error select { border-color: #dc3545 !important; box-shadow: 0 0 0 2px rgba(220,53,69,.2) !important; }
         .field-ok input, .field-ok select { border-color: #198754 !important; box-shadow: 0 0 0 2px rgba(25,135,84,.15) !important; }
         .invalid-feedback { color: #dc3545; font-size: .8rem; margin-top: .25rem; display: flex; align-items: center; gap: 4px; }
@@ -21,24 +24,27 @@
     <link rel="stylesheet" href="{% static 'public/css/fas-app.css' %}?v=16">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body class="flex flex-col min-h-screen bg-fas-gray-bg">
+<!-- Se eliminan márgenes y paddings por completo del body -->
+<body class="flex flex-col min-h-screen bg-fas-gray-bg m-0 p-0 w-full overflow-x-hidden">
 
+    <!-- NAV: Se añade block y ancho del 100% real de pantalla -->
     <nav class="bg-fas-blue shadow-lg">
-        <div class="container mx-auto px-4 h-20 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
                 <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-16 h-16 rounded-full shadow-md mr-2">
                 <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
             </a>
-            <div class="flex items-center gap-4">
+            <div class="ml-auto flex items-center justify-end gap-4 flex-wrap">
                 <a href="{% url 'inscripciones:lista_jugadores' %}" class="bg-fas-yellow text-fas-dark-blue font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition">Regresar</a>
                 <a href="{% url 'editar_perfil' %}" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Modificar Perfil</a>
-                <form method="POST" action="{% url 'logout' %}">{% csrf_token %}
+                <form method="POST" action="{% url 'logout' %}" class="m-0">{% csrf_token %}
                     <button type="submit" class="bg-white text-fas-blue border border-fas-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition duration-300">Cerrar sesión</button>
                 </form>
             </div>
         </div>
     </nav>
 
+    <!-- El formulario se mantiene centrado con margen arriba y abajo -->
     <div class="max-w-2xl mx-auto mt-8 mb-12 bg-white p-8 rounded-xl shadow-2xl w-full">
 
         <h3 class="text-3xl font-extrabold text-fas-dark-blue text-center mb-1">Registrar Jugador</h3>
@@ -198,8 +204,8 @@
         </form>
     </div>
 
-    <footer class="bg-fas-yellow py-4 shadow-xl mt-auto">
-        <div class="container mx-auto px-4 flex items-center justify-between flex-col sm:flex-row">
+    <footer class="bg-fas-yellow py-4 shadow-xl mt-auto w-full">
+        <div class="w-full px-6 flex items-center justify-between flex-col sm:flex-row">
             <div class="flex items-center space-x-3 mb-4 sm:mb-0">
                 <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="w-12 h-12 rounded-full"/>
                 <p class="text-gray-800 font-bold">F.A.S</p>

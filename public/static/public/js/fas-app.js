@@ -51,13 +51,13 @@
             return link.getAttribute('href') || '';
         }).join(' ');
 
-        if (links.indexOf('dashboard_jugador') !== -1 || links.indexOf('editar_jugador_perfil') !== -1 || pageText.indexOf('menu jugador') !== -1) {
+        if (links.indexOf('dashboard_jugador') !== -1 || links.indexOf('editar_jugador_perfil') !== -1) {
             return { label: 'Jugador', icon: 'fa-user' };
         }
-        if (links.indexOf('dashboard_entrenador') !== -1 || links.indexOf('entrenador') !== -1 || pageText.indexOf('entrenador') !== -1) {
+        if (links.indexOf('dashboard_entrenador') !== -1 || links.indexOf('/entrenamientos/lista/') !== -1) {
             return { label: 'Entrenador', icon: 'fa-clipboard-list' };
         }
-        if (links.indexOf('dashboard_admin') !== -1 || pageText.indexOf('admin') !== -1 || pageText.indexOf('equipos') !== -1) {
+        if (links.indexOf('dashboard_admin') !== -1 || links.indexOf('/admin/') !== -1) {
             return { label: 'Administrador', icon: 'fa-shield-halved' };
         }
         return { label: 'Usuario', icon: 'fa-user-check' };
@@ -132,17 +132,11 @@
     }
 
     function addTopbarExperience() {
-        if (document.querySelector('.fas-user-chip')) return;
         var container = findTopActionContainer();
         if (!container) return;
 
         var role = inferRole();
         var profileLink = findProfileLink();
-
-        var chip = document.createElement('div');
-        chip.className = 'fas-user-chip';
-        chip.innerHTML = '<span class="fas-user-chip-icon"><i class="fas ' + role.icon + '"></i></span>' +
-            '<span><strong>Sesion activa</strong><small>' + role.label + '</small></span>';
 
         var notifications = buildNotifications(role);
         var notifyWrap = document.createElement('div');
@@ -173,18 +167,14 @@
             panel.hidden = true;
         });
 
-        var chipNode = wrapForTopbar(container, chip);
         var notifyNode = wrapForTopbar(container, notifyWrap);
 
         if (profileLink && profileLink.parentElement && profileLink.parentElement.classList.contains('nav-item')) {
-            container.insertBefore(chipNode, profileLink.parentElement);
             container.insertBefore(notifyNode, profileLink.parentElement);
         } else if (profileLink) {
-            container.insertBefore(chipNode, profileLink);
             container.insertBefore(notifyNode, profileLink);
         } else {
-            container.insertBefore(chipNode, container.firstChild);
-            container.insertBefore(notifyNode, chipNode.nextSibling);
+            container.insertBefore(notifyNode, container.firstChild);
         }
     }
 
@@ -453,7 +443,7 @@
         polishStatusBadges();
         polishEmptyStates();
         highlightImportantRows();
-        addFloatingActions();
+        // addFloatingActions();
         confirmDangerForms();
     });
 })();

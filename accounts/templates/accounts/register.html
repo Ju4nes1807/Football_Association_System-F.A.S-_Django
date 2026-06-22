@@ -90,11 +90,11 @@
 <body class="flex flex-col min-h-screen bg-fas-gray-bg">
 
     <!-- NAVBAR -->
-    <nav class="bg-fas-blue shadow-lg">
+    <nav class="bg-fas-blue shadow-lg w-full">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <a href="{% url 'landingpage' %}" class="flex items-center space-x-2">
-                    <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="navbar-logo mr-2 rounded-full shadow-md">
+                    <img src="{% static 'public/images/Logo.png' %}" alt="Logo" class="navbar-logo mr-2 rounded-full shadow-md w-16 h-16">
                     <p class="text-white text-3xl font-extrabold tracking-wide m-0">F.A.S</p>
                 </a>
                 <div class="hidden md:flex items-center space-x-4">
@@ -109,7 +109,7 @@
                 </div>
             </div>
         </div>
-        <div id="mobile-menu" class="hidden md:hidden bg-fas-dark-blue">
+        <div id="mobile-menu" class="!hidden md:hidden bg-fas-dark-blue">
             <div class="px-2 pt-2 pb-3">
                 <a href="{% url 'landingpage' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-fas-blue/80 text-center">Regresar</a>
             </div>
