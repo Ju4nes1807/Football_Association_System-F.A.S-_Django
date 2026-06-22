@@ -355,8 +355,7 @@
             return;
         }
 
-        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setTheme(prefersDark ? 'dark' : 'light', false);
+        setTheme('light', false);
     }
 
     function polishStatusBadges() {
