@@ -951,8 +951,19 @@ def entrenador_inscribir(request, torneo_id):
         messages.error(request, 'Este torneo no acepta inscripciones.')
         return redirect('torneos:entrenador_lista_torneos')
 
-    if InscripcionTorneo.objects.filter(torneo=torneo, equipo=equipo, estado='ACTIVA').exists():
-        messages.error(request, 'Tu equipo ya está inscrito en este torneo.')
+    inscripcion_existente = InscripcionTorneo.objects.filter(
+        torneo=torneo, equipo=equipo
+    ).first()
+
+    if inscripcion_existente:
+        if inscripcion_existente.estado == InscripcionTorneo.Estado.ACTIVA:
+            messages.error(request, 'Tu equipo ya está inscrito en este torneo.')
+            return redirect('torneos:entrenador_lista_torneos')
+
+        if request.method == 'POST':
+            inscripcion_existente.estado = InscripcionTorneo.Estado.ACTIVA
+            inscripcion_existente.save()
+            messages.success(request, f'¡Tu equipo fue inscrito en {torneo.nombre}!')
         return redirect('torneos:entrenador_lista_torneos')
 
     if request.method == 'POST':
@@ -984,6 +995,42 @@ def entrenador_cancelar_inscripcion(request, inscripcion_id):
         messages.success(request, 'Inscripción cancelada.')
 
     return redirect('torneos:entrenador_lista_torneos')
+
+
+@login_required
+def entrenador_confirmar_cancelar(request, inscripcion_id):
+    if request.user.rol != 'ADMIN' and request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+
+    inscripcion = get_object_or_404(
+        InscripcionTorneo.objects.select_related('torneo', 'equipo'),
+        id=inscripcion_id
+    )
+    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+
+    if request.user.rol == 'ENTRENADOR' and inscripcion.equipo != equipo:
+        messages.error(request, 'No tienes permiso para esta acción.')
+        return redirect('torneos:entrenador_lista_torneos')
+
+    if inscripcion.estado != InscripcionTorneo.Estado.ACTIVA:
+        messages.error(request, 'Esta inscripción ya no está activa.')
+        return redirect('torneos:entrenador_lista_torneos')
+
+    if inscripcion.torneo.estado != Torneo.Estado.PROXIMO:
+        messages.error(request, 'No puedes cancelar un torneo que ya inició.')
+        return redirect('torneos:entrenador_lista_torneos')
+
+    if request.method == 'POST':
+        inscripcion.estado = InscripcionTorneo.Estado.CANCELADA
+        inscripcion.save()
+        messages.success(request, f'Inscripción cancelada en {inscripcion.torneo.nombre}.')
+        return redirect('torneos:entrenador_lista_torneos')
+
+    return render(request, 'torneos/entrenador/confirmar_cancelar.html', {
+        'inscripcion': inscripcion,
+        'torneo':      inscripcion.torneo,
+        'equipo':      inscripcion.equipo,
+    })
 
 
 @login_required

@@ -24,7 +24,8 @@ urlpatterns = [
     # Entrenador
     path('entrenador/',                                views.entrenador_lista_torneos,        name='entrenador_lista_torneos'),
     path('entrenador/<int:torneo_id>/inscribir/',      views.entrenador_inscribir,            name='entrenador_inscribir'),
-    path('entrenador/cancelar/<int:inscripcion_id>/',  views.entrenador_cancelar_inscripcion, name='entrenador_cancelar'),
+    path('entrenador/cancelar/<int:inscripcion_id>/',          views.entrenador_cancelar_inscripcion, name='entrenador_cancelar'),
+    path('entrenador/cancelar/<int:inscripcion_id>/confirmar/', views.entrenador_confirmar_cancelar,    name='entrenador_confirmar_cancelar'),
     path('entrenador/<int:torneo_id>/mis-partidos/',   views.entrenador_mis_partidos,         name='entrenador_mis_partidos'),
     path('entrenador/partido/<int:partido_id>/estadisticas/', views.entrenador_estadisticas_partido, name='entrenador_estadisticas_partido'),
     path('entrenador/reportes/jugadores/',             views.entrenador_reporte_jugadores,    name='entrenador_reporte_jugadores'),
