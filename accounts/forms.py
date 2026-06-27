@@ -35,6 +35,28 @@ class BaseRegistroForm(forms.Form):
 class RegistroPublicoForm(BaseRegistroForm):
     experiencia = forms.IntegerField(min_value=0, max_value=60)
 
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha_nacimiento = cleaned_data.get('fecha_nacimiento')
+        experiencia = cleaned_data.get('experiencia')
+
+        if fecha_nacimiento and experiencia is not None:
+            hoy = date.today()
+            edad = hoy.year - fecha_nacimiento.year - (
+                (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
+            )
+            EDAD_MINIMA = 17
+            max_permitida = max(0, edad - EDAD_MINIMA)
+
+            if experiencia > max_permitida:
+                self.add_error(
+                    'experiencia',
+                    f'Con {edad} años de edad, la experiencia máxima permitida es {max_permitida} años '
+                    f'(contando desde los {EDAD_MINIMA} años).'
+                )
+
+        return cleaned_data
+
 class RegistroAdminForm(BaseRegistroForm):
     pass
 
@@ -150,8 +172,31 @@ class EditarPerfilForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
+
+    # ── Validación contraseña 
         password_actual = cleaned_data.get('password_actual')
         password_nueva = cleaned_data.get('password_nueva')
         if password_nueva and not password_actual:
             self.add_error('password_actual', 'Debes ingresar tu contraseña actual para cambiarla.')
+
+    # ── Validación cruzada edad / experiencia ──
+        if self.es_entrenador:
+            fecha_nacimiento = cleaned_data.get('fecha_nacimiento')
+            experiencia = cleaned_data.get('experiencia')
+
+            if fecha_nacimiento and experiencia is not None:
+                hoy = date.today()
+                edad = hoy.year - fecha_nacimiento.year - (
+                    (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
+                )
+                EDAD_MINIMA = 17
+                max_permitida = max(0, edad - EDAD_MINIMA)
+
+                if experiencia > max_permitida:
+                    self.add_error(
+                        'experiencia',
+                        f'Con {edad} años de edad, la experiencia máxima permitida es {max_permitida} años '
+                        f'(contando desde los {EDAD_MINIMA} años).'
+                    )
+
         return cleaned_data

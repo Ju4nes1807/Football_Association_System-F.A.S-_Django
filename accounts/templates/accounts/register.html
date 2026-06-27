@@ -365,11 +365,25 @@
             telefono(v)    { if (!v.trim()) return 'El teléfono es obligatorio.'; if (!/^[3][0-9]{9}$/.test(v.trim())) return 'Número colombiano válido (ej: 3001234567).'; return null; },
             rol(v)         { if (!v) return 'Debes seleccionar un rol.'; return null; },
             experiencia(v) {
-                if (!v.trim()) return 'La experiencia es obligatoria.';
-                const n = parseInt(v);
-                if (isNaN(n) || n < 0 || n > 60) return 'Debe ser un número entre 0 y 60.';
-                return null;
-            },
+    if (!v.trim()) return 'La experiencia es obligatoria.';
+    const n = parseInt(v);
+    if (isNaN(n) || n < 0 || n > 60) return 'Debe ser un número entre 0 y 60.';
+
+    // Validación cruzada con fecha de nacimiento (está en el paso 1, pero sigue en el DOM)
+    const fechaVal = $('fecha_nacimiento')?.value;
+    if (fechaVal) {
+        const b = new Date(fechaVal), hoy = new Date();
+        let edad = hoy.getFullYear() - b.getFullYear();
+        if ((hoy.getMonth() - b.getMonth() < 0) ||
+            (hoy.getMonth() - b.getMonth() === 0 && hoy.getDate() < b.getDate())) edad--;
+        const EDAD_MINIMA = 17;
+        const maxPermitida = Math.max(0, edad - EDAD_MINIMA);
+        if (n > maxPermitida) {
+            return `Con ${edad} años de edad, la experiencia máxima permitida es ${maxPermitida} años (contando desde los ${EDAD_MINIMA} años).`;
+        }
+    }
+    return null;
+},
             password(v)    {
                 if (!v) return 'La contraseña es obligatoria.';
                 if (v.length<8) return 'Mínimo 8 caracteres.';

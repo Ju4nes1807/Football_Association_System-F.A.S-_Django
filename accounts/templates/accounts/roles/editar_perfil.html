@@ -313,12 +313,26 @@
                 return null;
             },
             experiencia(v) {
-                const el = $('experiencia');
-                if (el && !v.trim()) return 'La experiencia es obligatoria.';
-                const n = parseInt(v);
-                if (el && (isNaN(n) || n < 0 || n > 60)) return 'Debe ser un número entre 0 y 60.';
-                return null;
-            },
+    const el = $('experiencia');
+    if (!el) return null;
+    if (!v.trim()) return 'La experiencia es obligatoria.';
+    const n = parseInt(v);
+    if (isNaN(n) || n < 0 || n > 60) return 'Debe ser un número entre 0 y 60.';
+
+    const fechaVal = $('fecha_nacimiento')?.value;
+    if (fechaVal) {
+        const b = new Date(fechaVal), hoy = new Date();
+        let edad = hoy.getFullYear() - b.getFullYear();
+        if ((hoy.getMonth() - b.getMonth() < 0) ||
+            (hoy.getMonth() - b.getMonth() === 0 && hoy.getDate() < b.getDate())) edad--;
+        const EDAD_MINIMA = 17;
+        const maxPermitida = Math.max(0, edad - EDAD_MINIMA);
+        if (n > maxPermitida) {
+            return `Con ${edad} años de edad, la experiencia máxima permitida es ${maxPermitida} años (contando desde los ${EDAD_MINIMA} años).`;
+        }
+    }
+    return null;
+},
             password_nueva(v)   { if (!v) return null; if (v.length<8) return 'Mínimo 8 caracteres.'; if (!/[A-Z]/.test(v)) return 'Debe incluir una mayúscula.'; if (!/[0-9]/.test(v)) return 'Debe incluir un número.'; if (!/[^a-zA-Z0-9]/.test(v)) return 'Debe incluir un carácter especial.'; return null; },
             password_actual(v)  { const nueva = $('password_nueva')?.value; if (nueva && !v) return 'Debes ingresar tu contraseña actual.'; return null; },
         };
@@ -337,6 +351,10 @@
             const el = $(id); if (!el) return;
             el.addEventListener('blur',  () => validateField(id));
             el.addEventListener('input', () => { if (el.closest('.field-group').classList.contains('field-error')) validateField(id); });
+        });
+
+        $('fecha_nacimiento')?.addEventListener('change', () => {
+            if ($('experiencia')?.value) validateField('experiencia');
         });
 
         $('perfilForm').addEventListener('submit', e => {
