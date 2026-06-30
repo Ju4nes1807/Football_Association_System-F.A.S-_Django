@@ -13,6 +13,7 @@ from django.utils.html import escape
 from accounts.models import Jugador
 from .forms import EntrenamientoForm, obtener_canchas_disponibles
 from .models import AsistenciaEntrenamiento, Entrenamiento
+from inscripciones.seleccion_equipo import equipo_activo, equipos_del_entrenador
 
 
 def _enviar_correo_entrenamiento(entrenamiento, creado=True):
@@ -60,15 +61,8 @@ def _enviar_correo_entrenamiento(entrenamiento, creado=True):
     return len(destinatarios)
 
 
-def _obtener_equipo_entrenador(user):
-    entrenador = getattr(user, 'entrenador', None)
-    if not entrenador:
-        return None
-
-    try:
-        return entrenador.equipo
-    except Exception:
-        return None
+def _obtener_equipo_entrenador(request):
+    return equipo_activo(request)
 
 
 def _serializar_entrenamientos_mapa(entrenamientos):
@@ -198,7 +192,7 @@ def lista_entrenamientos(request):
     if user.rol == 'ADMIN':
         entrenamientos = Entrenamiento.objects.select_related('equipo', 'entrenador', 'cancha').all()
     elif user.rol == 'ENTRENADOR':
-        equipo = _obtener_equipo_entrenador(user)
+        equipo = _obtener_equipo_entrenador(request)
         entrenamientos = Entrenamiento.objects.select_related('equipo', 'entrenador', 'cancha').filter(
             equipo=equipo
         ) if equipo else Entrenamiento.objects.none()
@@ -216,13 +210,15 @@ def lista_entrenamientos(request):
     if user.rol == 'ENTRENADOR':
         panel_asistencia, total_jugadores = _construir_panel_asistencia(
             entrenamientos,
-            _obtener_equipo_entrenador(user)
+            _obtener_equipo_entrenador(request)
         )
 
     return render(request, 'entrenamientos/lista.html', {
         'entrenamientos': entrenamientos,
         'panel_asistencia': panel_asistencia,
         'total_jugadores': total_jugadores,
+        'equipo': _obtener_equipo_entrenador(request) if user.rol == 'ENTRENADOR' else None,
+        'equipos': equipos_del_entrenador(user) if user.rol == 'ENTRENADOR' else [],
     })
 
 
@@ -320,7 +316,7 @@ def crear_entrenamiento(request):
         messages.error(request, 'No tienes permisos para crear entrenamientos.')
         return redirect('lista_entrenamientos')
 
-    equipo = _obtener_equipo_entrenador(request.user)
+    equipo = _obtener_equipo_entrenador(request)
     if not equipo:
         messages.error(request, 'Primero debes tener un equipo asignado para programar entrenamientos.')
         return redirect('dashboard_entrenador')

@@ -31,6 +31,7 @@
                 <h5 class="mb-3 text-primary">Reportes</h5>
                 <div class="list-group">
                     <a href="{% url 'dashboard_entrenador' %}" class="list-group-item list-group-item-action">Inicio</a>
+                    <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Mis equipos</a>
                     <a href="{% url 'lista_entrenamientos' %}" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
@@ -40,6 +41,17 @@
             </aside>
 
             <section class="col-12 col-md-9 col-lg-10 p-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <label class="form-label fw-bold" for="selector-equipo-reportes">Reporte del equipo</label>
+                        <select id="selector-equipo-reportes" class="form-select" onchange="if(this.value) window.location.href=this.value">
+                            {% for item in equipos %}
+                            <option value="{% url 'inscripciones:seleccionar_equipo' item.id %}?next=torneos:entrenador_reporte_jugadores"
+                                    {% if item.id == equipo.id %}selected{% endif %}>{{ item.nombre }} — {{ item.categoria_display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
                 <section class="fas-welcome-panel">
                     <div class="fas-welcome-hero">
                         <span class="fas-kicker"><i class="fas fa-chart-line"></i> Reporte</span>

@@ -38,14 +38,16 @@ class RegistroEquipoForm(forms.Form):
     localidad = forms.CharField(max_length = 100)
     barrio = forms.CharField(max_length = 100)
 
+    def __init__(self, *args, **kwargs):
+        self.entrenador = kwargs.pop('entrenador', None)
+        super().__init__(*args, **kwargs)
+
     def clean_nombre(self):
         nombre = (self.cleaned_data.get('nombre') or '').strip()
         if nombre and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', nombre):
             raise forms.ValidationError('Solo letras, números y espacios.')
-        if Equipo.objects.filter(_nombre__iexact=nombre).exists():
-            raise forms.ValidationError('Ya existe un equipo con ese nombre.')
         return nombre
-    
+
     def clean_anio_fundacion(self):
         anio = self.cleaned_data.get('anio_fundacion')
         if anio < 1960 or anio > date.today().year:
@@ -83,17 +85,13 @@ class EditarEquipoForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         self.equipo_pk = kwargs.pop('equipo_pk', None)
+        self.entrenador = kwargs.pop('entrenador', None)
         super().__init__(*args, **kwargs)
 
     def clean_nombre(self):
         nombre = (self.cleaned_data.get('nombre') or '').strip()
         if nombre and not re.match(r'^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s]+$', nombre):
             raise forms.ValidationError('Solo letras, números y espacios.')
-        qs = Equipo.objects.filter(_nombre__iexact=nombre)
-        if self.equipo_pk:
-            qs = qs.exclude(pk=self.equipo_pk)
-        if qs.exists():
-            raise forms.ValidationError('Ya existe un equipo con ese nombre.')
         return nombre
 
     def clean_anio_fundacion(self):

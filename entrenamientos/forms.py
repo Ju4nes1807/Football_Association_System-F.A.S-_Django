@@ -85,6 +85,7 @@ class EntrenamientoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['fecha_hora'].input_formats = ['%Y-%m-%dT%H:%M']
         self.fields['fecha_fin'].input_formats = ['%Y-%m-%dT%H:%M']
+        self.fields['fecha_fin'].required = True
         fecha_base = fecha_hora
 
         if not fecha_base and self.is_bound:
@@ -109,10 +110,8 @@ class EntrenamientoForm(forms.ModelForm):
         fecha_fin = cleaned_data.get('fecha_fin')
         cancha = cleaned_data.get('cancha')
 
-        if fecha_hora and fecha_fin and fecha_fin < fecha_hora:
-            self.add_error('fecha_fin', 'La fecha de finalizacion debe ser igual o posterior al inicio.')
-        elif fecha_hora and not fecha_fin:
-            cleaned_data['fecha_fin'] = fecha_hora
+        if fecha_hora and fecha_fin and fecha_fin <= fecha_hora:
+            self.add_error('fecha_fin', 'La fecha y hora de finalización debe ser posterior al inicio.')
 
         if cancha and fecha_hora:
             disponibles = obtener_canchas_disponibles(

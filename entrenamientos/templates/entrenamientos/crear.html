@@ -78,6 +78,12 @@
                                     <div class="form-text">Primero define el horario. Luego verás las canchas libres para ese momento.</div>
                                     {% if form.fecha_hora.errors %}<div class="text-danger small mt-1">{{ form.fecha_hora.errors }}</div>{% endif %}
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Fecha y hora de terminación *</label>
+                                    {{ form.fecha_fin }}
+                                    <div class="form-text">Debe ser posterior a la fecha y hora de inicio.</div>
+                                    {% if form.fecha_fin.errors %}<div class="text-danger small mt-1">{{ form.fecha_fin.errors }}</div>{% endif %}
+                                </div>
                                 <div class="col-md-7">
                                     <label class="form-label fw-bold">Cancha disponible *</label>
                                     {{ form.cancha }}

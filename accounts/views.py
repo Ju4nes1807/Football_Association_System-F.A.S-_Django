@@ -222,7 +222,8 @@ def dashboard_entrenador(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect(_dashboard_por_rol(request.user))
 
-    equipo          = _get_equipo_entrenador(request.user) if hasattr(request.user, 'entrenador') else None
+    equipo          = _get_equipo_entrenador(request) if hasattr(request.user, 'entrenador') else None
+    equipos         = request.user.entrenador.equipos.order_by('_nombre')
     total_jugadores = Jugador.objects.filter(equipo=equipo).count() if equipo else 0
     total_canchas   = Cancha.objects.filter(_disponibilidad='DISPONIBLE').count()
     total_entrenamientos = Entrenamiento.objects.filter(equipo=equipo).count() if equipo else 0
@@ -251,6 +252,7 @@ def dashboard_entrenador(request):
 
     return render(request, 'accounts/roles/dashboardEntrenador.html', {
         'equipo':          equipo,
+        'equipos':         equipos,
         'total_jugadores': total_jugadores,
         'total_canchas':   total_canchas,
         'total_entrenamientos': total_entrenamientos,

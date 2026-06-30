@@ -42,7 +42,7 @@
                 <h5 class="mb-3 text-primary">Menu</h5>
                 <div class="list-group">
                     <a href="{% url 'dashboard_entrenador' %}" class="list-group-item list-group-item-action active">Inicio</a>
-                    <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Equipo</a>
+                    <a href="{% url 'inscripciones:mi_equipo' %}" class="list-group-item list-group-item-action">Mis equipos</a>
                     <a href="{% url 'lista_entrenamientos' %}" class="list-group-item list-group-item-action">Entrenamientos</a>
                     <a href="{% url 'torneos:entrenador_lista_torneos' %}" class="list-group-item list-group-item-action">Torneos</a>
                     <a href="{% url 'inscripciones:lista_canchas_entrenador' %}" class="list-group-item list-group-item-action">Canchas</a>
@@ -52,6 +52,20 @@
             </aside>
 
             <main class="col-12 col-md-9 col-lg-10 p-4">
+                {% if equipos %}
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body d-flex align-items-center flex-wrap gap-2">
+                        <strong class="me-2">Equipo activo:</strong>
+                        {% for item in equipos %}
+                        <a href="{% url 'inscripciones:seleccionar_equipo' item.id %}?next=dashboard_entrenador"
+                           class="btn btn-sm {% if equipo.id == item.id %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ item.nombre }}</a>
+                        {% endfor %}
+                        <a href="{% url 'inscripciones:registrar_equipo' %}" class="btn btn-sm btn-success ms-auto">
+                            <i class="fas fa-plus"></i> Nuevo equipo
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
                 <section class="fas-welcome-panel">
                     <div class="fas-welcome-hero">
                         <span class="fas-kicker"><i class="fas fa-whistle"></i> Entrenador</span>
@@ -109,8 +123,8 @@
                     <a href="{% url 'inscripciones:mi_equipo' %}" class="fas-home-card">
                         <span class="fas-card-icon"><i class="fas fa-shield-alt"></i></span>
                         <div>
-                            <h3>Mi equipo</h3>
-                            <p>Revisa datos, estado y categoria de tu equipo.</p>
+                            <h3>Mis equipos</h3>
+                            <p>Selecciona y administra cada uno de tus equipos.</p>
                         </div>
                         <span class="fas-card-meta">Abrir equipo</span>
                     </a>

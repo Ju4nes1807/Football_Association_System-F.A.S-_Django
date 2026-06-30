@@ -18,7 +18,7 @@ class Equipo(models.Model):
         SUB18 = 'SUB18', 'Sub-18'
         MAYOR = 'MAYOR', 'Mayor/Libre'
 
-    _nombre         = models.CharField(max_length=100, unique=True, db_column='nombre')
+    _nombre         = models.CharField(max_length=100, db_column='nombre')
     _descripcion    = models.TextField(db_column='descripcion', blank=True)
     _anio_fundacion = models.PositiveIntegerField(db_column='anio_fundacion')
     _logo           = models.ImageField(upload_to='equipos/logos/', db_column='logo', blank=True, null=True)
@@ -31,7 +31,7 @@ class Equipo(models.Model):
     _bloqueado_hasta = models.DateTimeField(db_column='bloqueado_hasta', blank=True, null=True)
     _eliminar_programada_para = models.DateTimeField(db_column='eliminar_programada_para', blank=True, null=True)
     _motivo_eliminacion = models.TextField(db_column='motivo_eliminacion', blank=True, null=True)
-    entrenador      = models.OneToOneField(Entrenador, on_delete=models.CASCADE, related_name='equipo')
+    entrenador      = models.ForeignKey(Entrenador, on_delete=models.CASCADE, related_name='equipos')
     fecha_registro  = models.DateTimeField(auto_now_add=True)
 
     # ── Getters y Setters ──

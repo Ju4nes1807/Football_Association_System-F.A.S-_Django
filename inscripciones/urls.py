@@ -11,6 +11,7 @@ urlpatterns = [
     path('equipo/lista/', views.lista_equipos, name='lista_equipos'),
     path('equipo/<int:equipo_id>/aprobar/',  views.aprobar_equipo,   name='aprobar_equipo'),
     path('equipo/mi-equipo/', views.mi_equipo, name = 'mi_equipo'),
+    path('equipo/<int:equipo_id>/seleccionar/', views.seleccionar_equipo_activo, name='seleccionar_equipo'),
     path('jugadores/', views.lista_jugadores, name='lista_jugadores'),
     path('jugadores/<int:jugador_id>/eliminar/', views.eliminar_jugador, name='eliminar_jugador'),
     path('jugadores/registrar/',views.registrar_jugador, name='registrar_jugador'),

@@ -14,6 +14,8 @@ from openpyxl import Workbook
 from .models import Torneo, InscripcionTorneo, Partido, EstadisticaJugador
 from .forms import TorneoForm, PartidoForm, EstadisticaForm
 from inscripciones.models import Cancha, Equipo
+from inscripciones.seleccion_equipo import equipo_activo
+from inscripciones.seleccion_equipo import equipos_del_entrenador
 from accounts.models import Jugador
 
 
@@ -891,7 +893,7 @@ def entrenador_lista_torneos(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
 
-    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    equipo = equipo_activo(request)
 
     mis_inscripciones = []
     ids_inscritos     = []
@@ -920,6 +922,7 @@ def entrenador_lista_torneos(request):
         'torneos_disponibles': torneos_disponibles,
         'mis_inscripciones':   mis_inscripciones,
         'equipo':              equipo,
+        'equipos':             equipos_del_entrenador(request.user),
     })
 
 
@@ -929,7 +932,7 @@ def entrenador_inscribir(request, torneo_id):
         return redirect('dashboard_admin')
 
     torneo = get_object_or_404(Torneo, id=torneo_id)
-    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    equipo = equipo_activo(request)
 
     if not equipo:
         messages.error(request, 'No tienes un equipo registrado.')
@@ -979,7 +982,7 @@ def entrenador_cancelar_inscripcion(request, inscripcion_id):
         return redirect('dashboard_admin')
 
     inscripcion = get_object_or_404(InscripcionTorneo, id=inscripcion_id)
-    equipo      = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    equipo      = equipo_activo(request)
 
     if request.user.rol == 'ENTRENADOR' and inscripcion.equipo != equipo:
         messages.error(request, 'No tienes permiso para esta acción.')
@@ -1006,7 +1009,7 @@ def entrenador_confirmar_cancelar(request, inscripcion_id):
         InscripcionTorneo.objects.select_related('torneo', 'equipo'),
         id=inscripcion_id
     )
-    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    equipo = equipo_activo(request)
 
     if request.user.rol == 'ENTRENADOR' and inscripcion.equipo != equipo:
         messages.error(request, 'No tienes permiso para esta acción.')
@@ -1040,7 +1043,7 @@ def entrenador_mis_partidos(request, torneo_id):
 
     torneo = get_object_or_404(Torneo, id=torneo_id)
     torneo.actualizar_estado()
-    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    equipo = equipo_activo(request)
 
     partidos = Partido.objects.filter(
         torneo=torneo
@@ -1072,7 +1075,7 @@ def entrenador_estadisticas_partido(request, partido_id):
         ),
         id=partido_id
     )
-    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    equipo = equipo_activo(request)
 
     if not equipo or equipo not in [partido.equipo_local, partido.equipo_visita]:
         messages.error(request, 'No tienes permisos para gestionar este partido.')
@@ -1164,7 +1167,7 @@ def entrenador_reporte_jugadores(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
 
-    equipo = getattr(getattr(request.user, 'entrenador', None), 'equipo', None)
+    equipo = equipo_activo(request)
     if not equipo:
         messages.error(request, 'Necesitas un equipo para generar reportes.')
         return redirect('dashboard_entrenador')
@@ -1302,6 +1305,7 @@ def entrenador_reporte_jugadores(request):
 
     return render(request, 'torneos/entrenador/reporte_jugadores.html', {
         'equipo': equipo,
+        'equipos': equipos_del_entrenador(request.user),
         'reporte': reporte,
         'mejores': mejores,
         'apoyo': apoyo,

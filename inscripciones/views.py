@@ -25,6 +25,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.utils import timezone
 from .utils import validar_edad_categoria, _enviar_credenciales_jugador, geodificar_direccion, enviar_credenciales_jugadores_lote
 from .constants import MENSAJE_ELIMINACION_PROGRAMADA
+from .seleccion_equipo import equipo_activo, equipos_del_entrenador, seleccionar_equipo
 
 MOTIVOS_RECHAZO_EQUIPO = [
     ('DOCUMENTOS', 'Documentacion incompleta'),
@@ -110,11 +111,9 @@ def _generar_pdf_equipos(equipos, filtros=None):
     output.write(f'trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF'.encode('ascii'))
     return output.getvalue()
 
-def _get_equipo_entrenador(user):
-    """Retorna el equipo del entrenador o None."""
-    if hasattr(user, 'entrenador'):
-        return getattr(user.entrenador, 'equipo', None)
-    return None
+def _get_equipo_entrenador(request):
+    """Compatibilidad interna: retorna el equipo activo del entrenador."""
+    return equipo_activo(request)
 
 
 def _agendar_eliminacion_equipo(request, equipo, motivo):
@@ -147,11 +146,11 @@ def registrar_equipo(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
 
-    if _get_equipo_entrenador(request.user):
-        messages.error(request, 'Ya tienes un equipo registrado.')
-        return redirect('inscripciones:mi_equipo')
-
-    form = RegistroEquipoForm(request.POST or None, request.FILES or None)
+    form = RegistroEquipoForm(
+        request.POST or None,
+        request.FILES or None,
+        entrenador=request.user.entrenador,
+    )
 
     if request.method == 'POST':
         if form.is_valid():
@@ -169,13 +168,22 @@ def registrar_equipo(request):
                 if data.get('logo'):
                     equipo.logo = data['logo']
                 equipo.save()
+                seleccionar_equipo(request, equipo.pk)
                 messages.success(request, 'Equipo registrado correctamente. En espera de aprobación.')
                 return redirect('inscripciones:mi_equipo')
 
             except ValueError as e:
                 form.add_error(None, str(e))
-            except IntegrityError:
-                form.add_error('nombre', 'Ya existe un equipo con ese nombre.')
+            except IntegrityError as error:
+                detalle = str(error).lower()
+                if 'entrenador' in detalle or 'nombre' in detalle or 'duplicate' in detalle:
+                    form.add_error(
+                        None,
+                        'La base de datos todavía conserva las restricciones antiguas de equipo. '
+                        'Ejecuta las migraciones pendientes y vuelve a intentarlo.'
+                    )
+                else:
+                    form.add_error(None, 'No fue posible registrar el equipo por un conflicto de datos.')
 
     return render(request, 'inscripciones/registrar_equipo.html', {'form': form})
 
@@ -184,7 +192,8 @@ def registrar_equipo(request):
 def mi_equipo(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
-    equipo = _get_equipo_entrenador(request.user)
+    equipo = _get_equipo_entrenador(request)
+    equipos = equipos_del_entrenador(request.user)
     puede_editar = True
     if equipo:
         ahora = timezone.now()
@@ -195,8 +204,29 @@ def mi_equipo(request):
                 puede_editar = False
     return render(request, 'inscripciones/mi_equipo.html', {
         'equipo': equipo,
+        'equipos': equipos,
         'puede_editar': puede_editar,
     })
+
+
+@login_required
+def seleccionar_equipo_activo(request, equipo_id):
+    if request.user.rol != 'ENTRENADOR':
+        return redirect('dashboard_admin')
+    equipo = seleccionar_equipo(request, equipo_id)
+    messages.success(request, f'Ahora administras el equipo {equipo.nombre}.')
+    destino = request.POST.get('next') or request.GET.get('next') or 'dashboard_entrenador'
+    destinos_permitidos = {
+        'dashboard_entrenador',
+        'inscripciones:mi_equipo',
+        'inscripciones:lista_jugadores',
+        'lista_entrenamientos',
+        'torneos:entrenador_lista_torneos',
+        'torneos:entrenador_reporte_jugadores',
+    }
+    if destino not in destinos_permitidos:
+        destino = 'dashboard_entrenador'
+    return redirect(destino)
 
 
 @login_required
@@ -221,6 +251,7 @@ def editar_equipo(request, equipo_id):
         request.POST or None,
         request.FILES or None,
         equipo_pk=equipo.id,
+        entrenador=request.user.entrenador,
         initial={
             'nombre':         equipo.nombre,
             'descripcion':    equipo.descripcion,
@@ -255,7 +286,7 @@ def editar_equipo(request, equipo_id):
             except ValueError as e:
                 form.add_error(None, str(e))
             except IntegrityError:
-                form.add_error('nombre', 'Ya existe un equipo con ese nombre.')
+                form.add_error(None, 'No fue posible actualizar el equipo por un conflicto de datos.')
 
     return render(request, 'inscripciones/editar_equipo.html', {
         'form':   form,
@@ -745,7 +776,7 @@ def lista_jugadores(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
     
-    equipo = _get_equipo_entrenador(request.user)
+    equipo = _get_equipo_entrenador(request)
     if not equipo:
         messages.error(request, 'No tienes un equipo registrado.')
         return redirect ('inscripciones:mi_equipo')
@@ -757,6 +788,7 @@ def lista_jugadores(request):
 
     return render(request, 'inscripciones/lista_jugadores.html', {
         'equipo': equipo,
+        'equipos': equipos_del_entrenador(request.user),
         'jugadores': jugadores,
         'total_jugadores': total_jugadores,
         'cupo_maximo_jugadores': cupo_maximo_jugadores,
@@ -769,7 +801,7 @@ def registrar_jugador(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
 
-    equipo = _get_equipo_entrenador(request.user)
+    equipo = _get_equipo_entrenador(request)
     if not equipo:
         messages.error(request, 'Debes registrar un equipo primero.')
         return redirect('inscripciones:mi_equipo')
@@ -844,7 +876,7 @@ def eliminar_jugador(request, jugador_id):
         return redirect('dashboard_admin')
 
     jugador = get_object_or_404(Jugador, id=jugador_id)
-    equipo  = _get_equipo_entrenador(request.user)
+    equipo  = _get_equipo_entrenador(request)
 
     if jugador.equipo != equipo:
         messages.error(request, 'No tienes permiso para eliminar este jugador.')
@@ -865,7 +897,7 @@ def carga_masiva_jugadores(request):
     if request.user.rol != 'ENTRENADOR':
         return redirect('dashboard_admin')
 
-    equipo = _get_equipo_entrenador(request.user)
+    equipo = _get_equipo_entrenador(request)
     if not equipo:
         messages.error(request, 'Debes registrar un equipo primero.')
         return redirect('inscripciones:mi_equipo')
@@ -1237,7 +1269,7 @@ def editar_jugador(request, jugador_id):
         return redirect('dashboard_admin')
 
     jugador = get_object_or_404(Jugador, id=jugador_id)
-    equipo  = _get_equipo_entrenador(request.user)
+    equipo  = _get_equipo_entrenador(request)
 
     if jugador.equipo != equipo:
         messages.error(request, 'No tienes permiso para editar este jugador.')
