@@ -147,11 +147,29 @@ class Equipo(models.Model):
         clean = value.strip() if value else ''
         self._motivo_eliminacion = clean or None
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        super().clean()
+        # Validación para que un entrenador no tenga más de un equipo en la misma categoría
+        if self.entrenador_id and self._categoria:
+            equipos_existentes = Equipo.objects.filter(entrenador=self.entrenador, _categoria=self._categoria)
+            if self.pk:
+                equipos_existentes = equipos_existentes.exclude(pk=self.pk)
+            if equipos_existentes.exists():
+                raise ValidationError("Ya tienes un equipo registrado en esta categoría.")
+
     def __str__(self): return self._nombre
 
     class Meta:
         verbose_name = 'Equipo'
         verbose_name_plural = 'Equipos'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['entrenador', '_categoria'], 
+                name='unique_entrenador_categoria',
+                violation_error_message="Ya tienes un equipo registrado en esta categoría."
+            )
+        ]
 
 class Cancha(models.Model):
     class TipoDisciplina(models.TextChoices):

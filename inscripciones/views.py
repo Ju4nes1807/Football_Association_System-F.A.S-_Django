@@ -11,6 +11,7 @@ from django.core.paginator import Paginator
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 from .models import Equipo, Cancha
 from .forms import RegistroEquipoForm, EditarEquipoForm, RegistroJugadorForm, CargaMasivaJugadoresForm, EditarJugadorEntrenadorForm, EditarPerfilJugadorForm, CanchaForm, CargaMasivaCanchasForm, POSICIONES, PIES
 import csv
@@ -167,11 +168,28 @@ def registrar_equipo(request):
                 equipo.estado         = Equipo.Estado.ESPERA
                 if data.get('logo'):
                     equipo.logo = data['logo']
+                equipo.full_clean()
                 equipo.save()
                 seleccionar_equipo(request, equipo.pk)
                 messages.success(request, 'Equipo registrado correctamente. En espera de aprobación.')
                 return redirect('inscripciones:mi_equipo')
 
+            except ValidationError as e:
+                if hasattr(e, 'message_dict'):
+                    for field, errors in e.message_dict.items():
+                        for error in errors:
+                            if 'already exists' in error:
+                                continue
+                            if field == '__all__':
+                                form.add_error(None, error)
+                            elif field == '_categoria':
+                                form.add_error('categoria', error)
+                            else:
+                                form.add_error(field, error)
+                else:
+                    for error in e.messages:
+                        if 'already exists' not in error:
+                            form.add_error(None, error)
             except ValueError as e:
                 form.add_error(None, str(e))
             except IntegrityError as error:
@@ -279,10 +297,27 @@ def editar_equipo(request, equipo_id):
                 equipo.fecha_rechazo = None
                 equipo.bloqueado_hasta = None
                 equipo.eliminar_programada_para = None
+                equipo.full_clean()
                 equipo.save()
                 messages.success(request, 'Equipo actualizado. En espera de aprobación.')
                 return redirect('inscripciones:mi_equipo')
 
+            except ValidationError as e:
+                if hasattr(e, 'message_dict'):
+                    for field, errors in e.message_dict.items():
+                        for error in errors:
+                            if 'already exists' in error:
+                                continue
+                            if field == '__all__':
+                                form.add_error(None, error)
+                            elif field == '_categoria':
+                                form.add_error('categoria', error)
+                            else:
+                                form.add_error(field, error)
+                else:
+                    for error in e.messages:
+                        if 'already exists' not in error:
+                            form.add_error(None, error)
             except ValueError as e:
                 form.add_error(None, str(e))
             except IntegrityError:
